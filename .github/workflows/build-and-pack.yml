@@ -22,11 +22,11 @@ jobs:
     - name: Restore and Build Projects
       run: |
         dotnet restore
-        dotnet build ./src/CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
-        dotnet build ./src/CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
+        dotnet build ../src/CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build ../src/CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
 
     - name: Pack
-      run: dotnet pack ./src/CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
+      run: dotnet pack ../src/CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
 
     # - name: Publish NuGet Package
     #   uses: rohith/publish-nuget@v2
