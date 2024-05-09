@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <!-- Include the source generator assembly in the NuGet package -->
-    <None Include="$(OutputPath)\CoreVar.CommandLineInterface.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
+    <None Include="..\CommandLineInterface.SourceGenerator\bin\Release\netstandard2.0\CoreVar.CommandLineInterface.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
   </ItemGroup>
 
 </Project>
