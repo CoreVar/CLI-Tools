@@ -1,6 +1,6 @@
 # CLI Tools for .NET Applications
 
-Welcome to the CLI Tools repository, where we've developed a robust set of command-line interfaces for managing .NET applications efficiently. This repository contains a series of examples demonstrating various capabilities from basic command handling to complex integrations with frameworks like Blazor for web-based management interfaces.
+Welcome to the CLI Tools repository, where we've developed a robust set of .NET tools for building .NET command line applications efficiently. This repository contains a series of examples demonstrating various capabilities from basic command handling to complex integrations with frameworks like Blazor for web-based management interfaces.
 
 ## Features
 
