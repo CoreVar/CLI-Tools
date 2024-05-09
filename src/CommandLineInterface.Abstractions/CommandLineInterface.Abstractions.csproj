@@ -7,6 +7,11 @@
     <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>CoreVar.CommandLineInterface</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <Title>Command Line Tools Abstractions</Title>
+    <Authors>Jeff Scherrer</Authors>
+    <Company>CoreVar, LLC</Company>
+    <Description>The CoreVar.CommandLineInterface.Abstractions library provides a foundational set of interfaces and classes designed to support the development of modular and extensible command-line applications using the CoreVar.CommandLineInterface framework. This package facilitates clean separation of concerns and robust architecture by defining essential contracts for command handling, argument processing, and execution flow control. Ideal for developers looking to extend the CoreVar CLI framework or integrate CLI capabilities into diverse .NET applications, it ensures flexibility and scalability in building sophisticated command-line interfaces.</Description>
+    <Copyright>Copyright © 2024 CoreVar, LLC. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

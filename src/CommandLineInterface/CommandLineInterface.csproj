@@ -7,6 +7,11 @@
     <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>CoreVar.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
     <LangVersion>latest</LangVersion>
+    <Title>Command Line Tools</Title>
+    <Authors>Jeff Scherrer</Authors>
+    <Company>CoreVar, LLC</Company>
+    <Description>The CoreVar.CommandLineInterface library provides a robust framework for building complex command-line interfaces in .NET applications. It offers a comprehensive set of tools for defining commands, handling arguments, and managing execution flow. This library simplifies the process of creating modular and maintainable CLI applications, featuring advanced functionalities such as dependency injection, error handling, and integration with .NET's asynchronous programming model. Whether you're developing simple utilities or complex interactive shells, CoreVar.CommandLineInterface equips you with the necessary tools to build intuitive and powerful command-line interfaces.</Description>
+    <Copyright>Copyright © 2024 CoreVar, LLC. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

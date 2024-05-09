@@ -25,12 +25,14 @@ jobs:
         dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
       working-directory: ./src
 
     - name: Pack
       run: |
-        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
         dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
       working-directory: ./src
 
     - name: Upload NuGet Package as Artifact
@@ -40,10 +42,26 @@ jobs:
         path: ./src/nupkgs/*.nupkg
 
 
-    # - name: Publish NuGet Package
-    #   uses: rohith/publish-nuget@v2
-    #   with:
-    #     # Use secret for api_key
-    #     NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
-    #     PACKAGE_FILE_PATH: './path/to/nupkgs/YourPackage.${{ github.run_number }}.nupkg'
-    #     SKIP_DUPLICATE: true
+    - name: Publish NuGet Package
+      uses: rohith/publish-nuget@v2
+      with:
+        # Use secret for api_key
+        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
+        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.Abstractions.0.7.0-prerelease-${{ github.run_number }}.nupkg'
+        SKIP_DUPLICATE: true
+
+    - name: Publish NuGet Package
+      uses: rohith/publish-nuget@v2
+      with:
+        # Use secret for api_key
+        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
+        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.0.7.0-prerelease-${{ github.run_number }}.nupkg'
+        SKIP_DUPLICATE: true
+        
+    - name: Publish NuGet Package
+      uses: rohith/publish-nuget@v2
+      with:
+        # Use secret for api_key
+        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
+        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.Blazor.0.7.0-prerelease-${{ github.run_number }}.nupkg'
+        SKIP_DUPLICATE: true
