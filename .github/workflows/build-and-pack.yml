@@ -42,26 +42,6 @@ jobs:
         path: ./src/nupkgs/*.nupkg
 
 
-    - name: Publish NuGet Package
-      uses: rohith/publish-nuget@v2
-      with:
-        # Use secret for api_key
-        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
-        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.Abstractions.0.7.0-prerelease-${{ github.run_number }}.nupkg'
-        SKIP_DUPLICATE: true
-
-    - name: Publish NuGet Package
-      uses: rohith/publish-nuget@v2
-      with:
-        # Use secret for api_key
-        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
-        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.0.7.0-prerelease-${{ github.run_number }}.nupkg'
-        SKIP_DUPLICATE: true
-        
-    - name: Publish NuGet Package
-      uses: rohith/publish-nuget@v2
-      with:
-        # Use secret for api_key
-        NUGET_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
-        PACKAGE_FILE_PATH: './src/nupkgs/CoreVar.CommandLineInterface.Blazor.0.7.0-prerelease-${{ github.run_number }}.nupkg'
-        SKIP_DUPLICATE: true
+    - name: Publish NuGet Packages
+      run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_PUBLISH_KEY }} --source https://api.nuget.org/v3/index.json
+      working-directory: ./src
