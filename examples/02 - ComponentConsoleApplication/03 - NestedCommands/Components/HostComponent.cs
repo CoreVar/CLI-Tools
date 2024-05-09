@@ -4,8 +4,8 @@ using CoreVar.CommandLineInterface;
 namespace ConsoleApplication.Components;
 
 [CommandName("host")]
-[NestedCommand<StartComponent>]
-[NestedCommand<StopComponent>]
+[Component<StartComponent>]
+[Component<StopComponent>]
 public class HostComponent : CommandLineComponent
 {
 }

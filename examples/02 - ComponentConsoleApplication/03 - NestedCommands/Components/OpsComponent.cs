@@ -4,7 +4,7 @@ using CoreVar.CommandLineInterface;
 namespace ConsoleApplication.Components;
 
 [CommandName("ops")]
-[NestedCommand<StatusComponent>]
+[Component<StatusComponent>]
 public class OpsComponent : CommandLineComponent
 {
 }

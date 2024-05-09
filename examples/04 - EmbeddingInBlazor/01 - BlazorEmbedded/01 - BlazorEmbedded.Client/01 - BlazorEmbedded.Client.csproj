@@ -17,7 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\src\CommandLineInterface.Blazor\CommandLineInterface.Blazor.csproj" />
     <ProjectReference Include="..\..\..\..\src\CommandLineInterface\CommandLineInterface.csproj" />
-    <ProjectReference Include="..\..\..\src\CommandLineInterface.SourceGenerator\CommandLineInterface.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\src\CommandLineInterface.SourceGenerator\CommandLineInterface.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

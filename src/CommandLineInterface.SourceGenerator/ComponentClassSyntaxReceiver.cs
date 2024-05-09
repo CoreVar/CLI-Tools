@@ -85,10 +85,10 @@ public class ComponentClassSyntaxReceiver : ISyntaxContextReceiver
                                     var descriptionValue = context.SemanticModel.GetConstantValue(attribute.ArgumentList!.Arguments[0].Expression);
                                     commandDescription = descriptionValue.HasValue ? (string)descriptionValue.Value! : null;
                                     break;
-                                case "NestedCommandAttribute":
+                                case "ComponentAttribute":
 
                                     if (attribute.Name is not GenericNameSyntax genericNameSyntax || genericNameSyntax.TypeArgumentList.Arguments.Count != 1)
-                                        throw new InvalidOperationException("The type list cannot be null and must contain one type for NestedCommandAttribute<>.");
+                                        throw new InvalidOperationException("The type list cannot be null and must contain one type for ComponentAttribute<>.");
 
                                     var typeArgument = genericNameSyntax.TypeArgumentList.Arguments[0];
                                     var typeInfo = context.SemanticModel.GetTypeInfo(typeArgument);
