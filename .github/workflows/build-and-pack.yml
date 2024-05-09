@@ -22,8 +22,8 @@ jobs:
     - name: Restore and Build Projects
       run: |
         dotnet restore
-        dotnet build CoreVar.CommandLineInterface.SourceGenerator/CoreVar.CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
-        dotnet build CoreVar.CommandLineInterface/CoreVar.CommandLineInterface.csproj --configuration Release --no-restore
+        dotnet build ../src/CoreVar.CommandLineInterface.SourceGenerator/CoreVar.CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build ../src/CoreVar.CommandLineInterface/CoreVar.CommandLineInterface.csproj --configuration Release --no-restore
 
     - name: Pack
       run: dotnet pack CoreVar.CommandLineInterface/CoreVar.CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
