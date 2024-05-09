@@ -30,7 +30,7 @@ jobs:
     - name: Pack
       run: |
         dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
-        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
       working-directory: ./src
 
     - name: Upload NuGet Package as Artifact
