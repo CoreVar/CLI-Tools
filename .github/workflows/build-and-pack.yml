@@ -13,7 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    
+  
+    - name: List Directory Structure
+      run: ls -R
+
+    - name: Print working directory
+      run: pwd
+
+    - name: Echo DOTNET_ROOT
+      run: echo $DOTNET_ROOT
+
     - name: Set up .NET
       uses: actions/setup-dotnet@v1
       with:
