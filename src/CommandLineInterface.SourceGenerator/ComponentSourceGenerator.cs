@@ -50,6 +50,8 @@ using Microsoft.Extensions.DependencyInjection;
             indent++;
 
             sourceBuilder.Append($@"
+{new string(' ', indent * 4)}public static {typeName} Default {{ get; }} = new();
+
 {new string(' ', indent * 4)}protected override void Build(IExecutableBuilder builder)
 {new string(' ', indent * 4)}{{
 ");
@@ -61,7 +63,7 @@ using Microsoft.Extensions.DependencyInjection;
                 var componentPropertyName = commandDefinition.Type.Name;
                 if (componentPropertyName.EndsWith("Component"))
                     componentPropertyName = componentPropertyName.Substring(0, componentPropertyName.Length - 9);
-
+                
                 sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}((ISourceGeneratedComponentInternals){componentPropertyName}).Build(builder);");
             }
 
@@ -96,7 +98,7 @@ using Microsoft.Extensions.DependencyInjection;
         if (staticPropertyName.EndsWith("Component"))
             staticPropertyName = staticPropertyName.Substring(0, staticPropertyName.Length - 9);
 
-        sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}public static SourceGeneratedComponentReference<{commandDefinition.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}> {staticPropertyName} {{ get; }} = new SourceGeneratedComponentReference<{commandDefinition.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(builder =>
+        sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}public SourceGeneratedComponentReference<{commandDefinition.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}> {staticPropertyName} {{ get; }} = new SourceGeneratedComponentReference<{commandDefinition.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>(builder =>
 {new string(' ', indent * 4)}{{");
         indent++;
 

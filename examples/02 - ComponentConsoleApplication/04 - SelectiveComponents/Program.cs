@@ -7,11 +7,11 @@ await CliApp.RunAsync(builder =>
         .EnableRepl()
         .Command("host", hostCommand =>
         {
-            hostCommand.Component(ConsoleApplicationContext.Start);
-            hostCommand.Component(ConsoleApplicationContext.Stop);
+            hostCommand.Component(ConsoleApplicationContext.Default.Start);
+            hostCommand.Component(ConsoleApplicationContext.Default.Stop);
         })
         .Command("ops", opsCommand =>
         {
-            opsCommand.Component(ConsoleApplicationContext.Status);
+            opsCommand.Component(ConsoleApplicationContext.Default.Status);
         });
 });
