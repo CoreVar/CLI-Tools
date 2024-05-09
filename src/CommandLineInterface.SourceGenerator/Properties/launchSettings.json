@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Profile 1": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\..\\examples\\02 - ComponentConsoleApplication\\01 - Components\\01 - Components.csproj"
+    }
+  }
+}

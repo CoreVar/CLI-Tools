@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>CoreVar.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CommandLineInterface.Abstractions\CommandLineInterface.Abstractions.csproj" />
+  </ItemGroup>  
+
+</Project>

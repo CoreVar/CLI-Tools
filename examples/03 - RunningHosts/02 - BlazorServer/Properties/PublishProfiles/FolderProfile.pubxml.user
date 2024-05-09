@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>C:\corevar\repos\CLI-Tools\examples\03 - RunningHosts\02 - BlazorServer\bin\Release\net8.0\publish\</_PublishTargetUrl>
+    <History>True|2024-05-07T21:43:53.6024428Z;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

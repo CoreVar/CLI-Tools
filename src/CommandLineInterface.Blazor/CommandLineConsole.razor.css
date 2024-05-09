@@ -1,0 +1,16 @@
+﻿.command-line-console {
+    width:100%;
+    padding: 1em;
+    margin: 1em 0;
+    background:#000000;
+    color:#ffffff;
+}
+
+.command-line-textinput {
+    background-color:#000000 !important;
+    border:none !important;
+    outline:none !important;
+    color:#ffffff !important;
+    margin:0;
+    padding:0;
+}

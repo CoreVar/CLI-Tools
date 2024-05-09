@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "01 - BlazorEmbedded", "01 - BlazorEmbedded\01 - BlazorEmbedded\01 - BlazorEmbedded.csproj", "{1668EA88-B848-45AA-9E34-7C9D2F3908A6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "01 - BlazorEmbedded.Client", "01 - BlazorEmbedded\01 - BlazorEmbedded.Client\01 - BlazorEmbedded.Client.csproj", "{6FC5F863-FEF6-44FF-8588-41A243D12D8E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineInterface", "..\..\src\CommandLineInterface\CommandLineInterface.csproj", "{9A9801A8-C9C0-430B-8611-8D7EC108E705}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineInterface.Abstractions", "..\..\src\CommandLineInterface.Abstractions\CommandLineInterface.Abstractions.csproj", "{EF3C89F6-285B-4428-9D24-9015E47D26B4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineInterface.SourceGenerator", "..\..\src\CommandLineInterface.SourceGenerator\CommandLineInterface.SourceGenerator.csproj", "{EAAFC271-E602-4F30-8A84-9FD8BD84B41E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Blazor", "..\..\src\CommandLineInterface.Blazor\CommandLineInterface.Blazor.csproj", "{D3E0B7AD-F7BB-4D45-B75F-80722B36A4EE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1668EA88-B848-45AA-9E34-7C9D2F3908A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1668EA88-B848-45AA-9E34-7C9D2F3908A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1668EA88-B848-45AA-9E34-7C9D2F3908A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1668EA88-B848-45AA-9E34-7C9D2F3908A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FC5F863-FEF6-44FF-8588-41A243D12D8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FC5F863-FEF6-44FF-8588-41A243D12D8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FC5F863-FEF6-44FF-8588-41A243D12D8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FC5F863-FEF6-44FF-8588-41A243D12D8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A9801A8-C9C0-430B-8611-8D7EC108E705}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A9801A8-C9C0-430B-8611-8D7EC108E705}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A9801A8-C9C0-430B-8611-8D7EC108E705}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A9801A8-C9C0-430B-8611-8D7EC108E705}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF3C89F6-285B-4428-9D24-9015E47D26B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF3C89F6-285B-4428-9D24-9015E47D26B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF3C89F6-285B-4428-9D24-9015E47D26B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF3C89F6-285B-4428-9D24-9015E47D26B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAAFC271-E602-4F30-8A84-9FD8BD84B41E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAAFC271-E602-4F30-8A84-9FD8BD84B41E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAAFC271-E602-4F30-8A84-9FD8BD84B41E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAAFC271-E602-4F30-8A84-9FD8BD84B41E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3E0B7AD-F7BB-4D45-B75F-80722B36A4EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3E0B7AD-F7BB-4D45-B75F-80722B36A4EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3E0B7AD-F7BB-4D45-B75F-80722B36A4EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3E0B7AD-F7BB-4D45-B75F-80722B36A4EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CB0454ED-6706-4AAE-97AD-F40C26EBF03A}
+	EndGlobalSection
+EndGlobal

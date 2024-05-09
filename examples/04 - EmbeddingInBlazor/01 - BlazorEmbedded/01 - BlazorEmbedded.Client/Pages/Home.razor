@@ -1,0 +1,39 @@
+﻿@page "/"
+@inject GreetingService greetingService;
+@inject ConsoleApplicationService consoleApplicationService;
+
+<PageTitle>Home</PageTitle>
+
+<h1>@greetingService.Greeting</h1>
+
+Welcome to your new app.
+
+<CommandLineConsole CliApp="consoleApplicationService.App"></CommandLineConsole>
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        greetingService.GreetingChanged += OnGreetingChanged;
+    }
+
+    private void OnGreetingChanged(object? sender, EventArgs eventArgs)
+    {
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!consoleApplicationService.IsRunning)
+            {
+                await consoleApplicationService.StartAsync();
+
+                StateHasChanged();
+            }
+        }
+    }
+
+}

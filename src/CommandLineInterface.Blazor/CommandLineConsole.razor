@@ -1,0 +1,91 @@
+﻿@using CoreVar.CommandLineInterface.Services
+@using CoreVar.CommandLineInterface.Utilities
+@using Microsoft.Extensions.DependencyInjection
+
+<div class="command-line-console" @onclick="OnConsoleClick">
+    <div>
+        @if (_consoleControl is not null)
+        {
+            foreach (var line in _consoleControl.Lines.Take(_consoleControl.Lines.Count - 1))
+            {
+                <div @key="@line.Key" style="min-width:2px;">
+                    @foreach (var element in line.Elements)
+                    {
+                        <span @key="element.Key" style="@($"color:#aaaaaa;font-family:'Cascadia Mono', Consolas;")">@element.Text</span>
+                    }
+                    @if (!line.Elements.Any(e => e.Text.Length > 0))
+                    {
+                        <span>&nbsp;</span>
+                    }
+                </div>
+            }
+        }
+    </div>
+    <div>
+        @if (_consoleControl is not null)
+        {
+            foreach (var element in _consoleControl.Lines.Last().Elements)
+            {
+                <span @key="element.Key" style="@($"color:#aaaaaa;font-family:'Cascadia Mono', Consolas;")">@element.Text</span>
+            }
+        }
+        <input @ref="_inputText" type="text" style="background:none;border:none;outline:none;color:#aaaaaa;margin:0;padding:0;font-family:'Cascadia Mono', Menlo, Monaco, Consolas, 'Lucida Console', 'DejaVu Sans Mono', 'Monospace', 'Courier New', monospace;" @bind="_text" @bind:event="oninput" @onkeypress="OnKeyPress" spellcheck="false" />
+    </div>
+</div>
+
+@code {
+    string _text = string.Empty;
+    ElementReference _inputText;
+    CliApp? _cliApp;
+    BlazorConsoleControl? _consoleControl;
+    ICommandExecutor? _commandExecutor;
+
+    [Parameter]
+    public CliApp? CliApp { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (_cliApp != CliApp)
+        {
+            _cliApp = CliApp;
+
+            if (_cliApp is not null)
+            {
+                _consoleControl = _cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>();
+                _commandExecutor = _cliApp.Host.Services.GetRequiredService<ICommandExecutor>();
+                _consoleControl.LinesChanged += OnConsoleLinesChanged;
+            }
+            else
+            {
+                if (_consoleControl is not null)
+                    _consoleControl.LinesChanged -= OnConsoleLinesChanged;
+                _consoleControl = null;
+                _commandExecutor = null;
+            }
+        }
+    }
+
+    private void OnConsoleLinesChanged(object? sender, EventArgs eventArgs)
+    {
+        StateHasChanged();
+    }
+
+    private void OnKeyPress(KeyboardEventArgs e)
+    {
+        if (_consoleControl is null || _commandExecutor is null)
+            return;
+
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            _consoleControl.SubmitLine(_text);
+            _text = string.Empty;
+
+            StateHasChanged();
+        }
+    }
+
+    private async void OnConsoleClick()
+    {
+        await _inputText.FocusAsync();
+    }
+}

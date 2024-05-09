@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "ConsoleApplication start MyNewJob --delay 5 --log": {
+      "commandName": "Project",
+      "commandLineArgs": "start MyNewJob --delay 5 --log"
+    },
+    "ConsoleApplication stop": {
+      "commandName": "Project",
+      "commandLineArgs": "stop"
+    },
+    "ConsoleApplication start --help": {
+      "commandName": "Project",
+      "commandLineArgs": "start --help"
+    },
+    "ConsoleApplication stop --help": {
+      "commandName": "Project",
+      "commandLineArgs": "stop --help"
+    }
+  }
+}
