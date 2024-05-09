@@ -14,15 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
   
-    - name: List Directory Structure
-      run: ls -R
-
-    - name: Print working directory
-      run: pwd
-
-    - name: Echo DOTNET_ROOT
-      run: echo $DOTNET_ROOT
-
     - name: Set up .NET
       uses: actions/setup-dotnet@v1
       with:
@@ -32,11 +23,14 @@ jobs:
       run: |
         dotnet restore
         dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
       working-directory: ./src
 
     - name: Pack
-      run: dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
+      run: |
+        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=0.7.0-prerelease${{ github.run_number }}
       working-directory: ./src
 
     - name: Upload NuGet Package as Artifact
