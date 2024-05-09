@@ -39,6 +39,13 @@ jobs:
       run: dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
       working-directory: ./src
 
+    - name: Upload NuGet Package as Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: NuGet-Packages
+        path: ./src/nupkgs/*.nupkg
+
+
     # - name: Publish NuGet Package
     #   uses: rohith/publish-nuget@v2
     #   with:
