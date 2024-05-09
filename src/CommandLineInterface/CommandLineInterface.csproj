@@ -15,6 +15,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineInterface.Abstractions\CommandLineInterface.Abstractions.csproj" />
-  </ItemGroup>  
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Include the source generator assembly in the NuGet package -->
+    <None Include="$(OutputPath)\CoreVar.CommandLineInterface.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" />
+  </ItemGroup>
 
 </Project>

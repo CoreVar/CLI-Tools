@@ -1,0 +1,37 @@
+name: Build and Package CoreVar CLI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore and Build Projects
+      run: |
+        dotnet restore
+        dotnet build CoreVar.CommandLineInterface.SourceGenerator/CoreVar.CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build CoreVar.CommandLineInterface/CoreVar.CommandLineInterface.csproj --configuration Release --no-restore
+
+    - name: Pack
+      run: dotnet pack CoreVar.CommandLineInterface/CoreVar.CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{ github.run_number }}
+
+    # - name: Publish NuGet Package
+    #   uses: rohith/publish-nuget@v2
+    #   with:
+    #     # Use secret for api_key
+    #     NUGET_KEY: ${{ secrets.NUGET_API_KEY }}
+    #     PACKAGE_FILE_PATH: './path/to/nupkgs/YourPackage.${{ github.run_number }}.nupkg'
+    #     SKIP_DUPLICATE: true
