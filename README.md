@@ -10,6 +10,7 @@ Welcome to the CLI Tools repository, where we've developed a robust set of .NET 
 - **Integration with ASP.NET Core**: Examples showing how to integrate and manage an ASP.NET Core web host within CLI commands.
 - **Blazor Integration**: Advanced samples demonstrating how to embed CLI in a Blazor application for interactive command execution directly from the browser.
 - **Modular Design**: Easy to extend and customize, supporting a wide range of applications and use cases.
+- **AOT Compatible**: All capabilities made available are compatible with Ahead-of-Time compilation. (Blazor examples cannot be published with AOT due to limitations in Blazor)
 
 ## Getting Started
 
@@ -29,7 +30,7 @@ Ensure you have the following installed:
 
 2. **Add the CoreVar.CommandLineInterface NuGet Package**:
    ```bash
-   dotnet add package CoreVar.CommandLineInterface
+   dotnet add package CoreVar.CommandLineInterface -prerelease
    ```
 
 3. **Explore the Examples**:
