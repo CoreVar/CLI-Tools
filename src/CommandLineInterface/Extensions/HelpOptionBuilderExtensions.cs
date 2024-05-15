@@ -1,16 +1,17 @@
 ﻿using CoreVar.CommandLineInterface.Builders;
 using CoreVar.CommandLineInterface.Builders.Internals;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CoreVar.CommandLineInterface.Extensions;
 
 public static class HelpOptionBuilderExtensions
 {
 
+    /// <summary>
+    /// Defines help alias(es) for the current help option.
+    /// </summary>
+    /// <param name="builder">The help option builder.</param>
+    /// <param name="aliases">The aliases.</param>
+    /// <returns>The help option builder.</returns>
     public static IHelpOptionBuilder WithAlias(this IHelpOptionBuilder builder, params string[] aliases)
     {
         var builderInternals = (IHelpOptionBuilderInternals)builder;

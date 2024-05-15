@@ -9,6 +9,13 @@ namespace CoreVar.CommandLineInterface;
 public static class GenericExtensions
 {
 
+    /// <summary>
+    /// Allows the <see cref="IHostApplicationBuilder"/> to be setup for the application.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="builderSetup">The setup handler.</param>
+    /// <returns>The builder.</returns>
     public static T SetupHostBuilder<T>(this T source, Action<IHostApplicationBuilder> builderSetup) where T : IBuilder
     {
         ((IBuilderInternals)source).AddHostBuilder(builderSetup);
@@ -16,6 +23,13 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Allows the <see cref="IHost"/> to be setup for the application.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="hostSetup">The setup handler.</param>
+    /// <returns>The builder.</returns>
     public static T SetupHost<T>(this T source, Action<IHost> hostSetup) where T : IBuilder
     {
         ((IBuilderInternals)source).AddHostSetup(hostSetup);
@@ -23,6 +37,13 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Provides a description for the element being built.
+    /// </summary>
+    /// <typeparam name="T">The type of builder.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="description">The description.</param>
+    /// <returns>The builder.</returns>
     public static T Description<T>(this T source, string description) where T : IBuilder
     {
         ((IBuilderInternals)source).Description = description;
@@ -30,6 +51,14 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines a command for the element being built.
+    /// </summary>
+    /// <typeparam name="T">The type of builder.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="name">The command name, as it is called by an executor.</param>
+    /// <param name="builder">The command builder handler.</param>
+    /// <returns>The builder.</returns>
     public static T Command<T>(this T source, string name, Action<ICommandBuilder> builder) where T : IParentBuilder
     {
         ((IParentBuilderInternals)source).Children.Add(name, builder);
@@ -37,6 +66,14 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines the method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The type of builder.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
+    /// <exception cref="InvalidOperationException">Occurs when an execution handler has already been assigned.</exception>
     public static T OnExecute<T>(this T source, Func<CommandExecutionContext, ValueTask> handler) where T : IExecutableBuilder
     {
         var sourceInternals = (IExecutableBuilderInternals)source;
@@ -48,6 +85,13 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Action<CommandExecutionContext> handler) where T : IExecutableBuilder
         => OnExecute(source, context =>
         {
@@ -56,12 +100,33 @@ public static class GenericExtensions
             return ValueTask.CompletedTask;
         });
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Func<ValueTask> handler) where T : IExecutableBuilder
         => OnExecute(source, async _ => await handler());
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Action handler) where T : IExecutableBuilder
         => OnExecute(source, _ => handler());
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Func<CommandExecutionContext, ValueTask<int>> handler) where T : IExecutableBuilder
     {
         OnExecute(source, async context =>
@@ -73,6 +138,13 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Func<CommandExecutionContext, int> handler) where T : IExecutableBuilder
         => OnExecute(source, context =>
         {
@@ -82,6 +154,13 @@ public static class GenericExtensions
             return ValueTask.CompletedTask;
         });
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Func<ValueTask<int>> handler) where T : IExecutableBuilder
     {
         OnExecute(source, async _ => await handler());
@@ -89,9 +168,23 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines a method to be called when the command is executed.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="handler">The method to call when the command is executed.</param>
+    /// <returns>The builder.</returns>
     public static T OnExecute<T>(this T source, Func<int> handler) where T : IExecutableBuilder
         => OnExecute(source, _ => handler());
 
+    /// <summary>
+    /// Defines a usage example on how to execute the command.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="usage">A handler which generates the usage example.</param>
+    /// <returns></returns>
     public static T Usage<T>(this T source, Func<IServiceProvider, string> usage) where T : IExecutableBuilder
     {
         var builderInternals = (IExecutableBuilderInternals)source;
@@ -103,6 +196,14 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines a usage example on how to execute the command, along with a description of this example.
+    /// </summary>
+    /// <typeparam name="T">The builder type.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="usage">A handler which generates the usage example.</param>
+    /// <param name="description">The description of the example.</param>
+    /// <returns>The builder.</returns>
     public static T Usage<T>(this T source, Func<IServiceProvider, string> usage, string description) where T : IExecutableBuilder
     {
         var builderInternals = (IExecutableBuilderInternals)source;
@@ -115,6 +216,13 @@ public static class GenericExtensions
         return source;
     }
 
+    /// <summary>
+    /// Defines an option for the command.
+    /// </summary>
+    /// <typeparam name="T">The type of value the option contains.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="name">The option name.</param>
+    /// <returns>The option builder.</returns>
     public static ICommandOptionBuilder<T> Option<T>(this IExecutableBuilder source, string name)
     {
         var executableBuilderInternals = (IExecutableBuilderInternals)source;
@@ -206,11 +314,24 @@ public static class GenericExtensions
         return commandOptionBuilder;
     }
 
+    /// <summary>
+    /// Defines an boolean option for the command.
+    /// </summary>
+    /// <param name="source">The builder.</param>
+    /// <param name="name">The option name.</param>
+    /// <returns>The option builder.</returns>
     public static ICommandOptionBuilder<bool> Option(this IExecutableBuilder source, string name)
     {
         return source.Option<bool>(name).IsOptional();
     }
 
+    /// <summary>
+    /// Defines an argument for the command.
+    /// </summary>
+    /// <typeparam name="T">The typ of value the argument contains.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="name">The argument name.</param>
+    /// <returns>The builder.</returns>
     public static ICommandArgumentBuilder<T> Argument<T>(this IExecutableBuilder source, string name)
     {
         var executableBuilderInternals = (IExecutableBuilderInternals)source;
@@ -265,6 +386,13 @@ public static class GenericExtensions
         return commandArgumentBuilder;
     }
 
+    /// <summary>
+    /// Defines the option to retrieve help for th current command.
+    /// </summary>
+    /// <typeparam name="T">The type of the builder.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <param name="option">The option name.</param>
+    /// <returns>The builder.</returns>
     public static IHelpOptionBuilder HelpOption<T>(this T source, string option) where T : IExecutableBuilder
     {
         var builderInternals = (IExecutableBuilderInternals)source;
@@ -277,6 +405,12 @@ public static class GenericExtensions
         return helpOptionBuilder;
     }
 
+    /// <summary>
+    /// Marks the current command as not having a help option.
+    /// </summary>
+    /// <typeparam name="T">The type of builder.</typeparam>
+    /// <param name="source">The builder.</param>
+    /// <returns>The builder.</returns>
     public static T WithoutHelp<T>(this T source) where T : IExecutableBuilder
     {
         var builderInternals = (IExecutableBuilderInternals)source;

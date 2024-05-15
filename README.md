@@ -33,12 +33,34 @@ Ensure you have the following installed:
    dotnet add package CoreVar.CommandLineInterface --prerelease
    ```
 
-3. **Explore the Examples**:
+3. **Modify Program.cs**
+    ```
+    using CoreVar.CommandLineInterface;
+
+    await CliApp.RunAsync(cliApp =>
+    {
+        cliApp
+            .Command("start", startCommand =>
+            {
+                startCommand
+                    .OnExecute(() => Console.WriteLine("Service started"));
+            })
+            .Command("stop", stopCommand =>
+            {
+                stopCommand
+                    .OnExecute(() => Console.WriteLine("Service stopped."));
+            });
+    });
+    ```
+
+    This is the simplest exampl of how to build a CLI application.
+
+4. **Explore the Examples**:
    Navigate to the examples within this repository to see how to implement various CLI functionalities.
 
 ### Running the Examples
 
-To run any of the examples, use the following command from within the project directory:
+To run any of the examples, run/debug from Visual Studio 2022 or use the following command from within the project directory:
 
 ```bash
 dotnet run
@@ -50,8 +72,6 @@ Each folder in the repository is structured to contain separate projects with th
 - **Basic CLI Operations**: Simple commands and configurations.
 - **Dependency Injection**: Demonstrates scoped and singleton services.
 - **Blazor Integration**: Shows how to embed CLI within a Blazor application.
-
-Refer to the README.md files within each project folder for detailed usage instructions.
 
 ## Contributing
 

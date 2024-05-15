@@ -1,21 +1,17 @@
 ﻿using CoreVar.CommandLineInterface.Builders;
 using CoreVar.CommandLineInterface.Builders.Internals;
-using CoreVar.CommandLineInterface.Support;
-using CoreVar.CommandLineInterface.Utilities;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CoreVar.CommandLineInterface;
 
 public static partial class BuilderExtensions
 {
 
+    /// <summary>
+    /// Enables Read-Execute-Print Loop.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="enable">Enable REPL.</param>
+    /// <returns>The builder.</returns>
     public static ICommandLineBuilder EnableRepl(this ICommandLineBuilder builder, bool enable = true)
     {
         var commandLineBuilderInternals = (ICommandLineBuilderInternals)builder;
@@ -23,6 +19,12 @@ public static partial class BuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Defines the prompt text while in REPL mode.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="prompt">The prompt text.</param>
+    /// <returns>The builder.</returns>
     public static ICommandLineBuilder ReplPrompt(this ICommandLineBuilder builder, string prompt)
     {
         var commandLineBuilderInternals = (ICommandLineBuilderInternals)builder;
@@ -30,6 +32,13 @@ public static partial class BuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Defines an initialization prompt.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="prompt">The prompt.</param>
+    /// <param name="replOnly">Whether the initialization prompt is for REPL mode only.</param>
+    /// <returns>The builder.</returns>
     public static ICommandLineBuilder InitializationPrompt(this ICommandLineBuilder builder, string prompt, bool replOnly = true)
     {
 
@@ -37,6 +46,12 @@ public static partial class BuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Defines the exit command name.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="name">The exit command name.</param>
+    /// <returns>The builder.</returns>
     public static ICommandLineBuilder ExitCommand(this ICommandLineBuilder builder, string name)
     {
         var commandLineBuilderInternals = (ICommandLineBuilderInternals)builder;
@@ -44,6 +59,13 @@ public static partial class BuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Defines the default help option for the application.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="name">The help option name.</param>
+    /// <param name="aliases">Default aliases for the help option.</param>
+    /// <returns>The builder.</returns>
     public static ICommandLineBuilder DefaultHelpOption(this ICommandLineBuilder builder, string name, params string[]? aliases)
     {
         var builderInternals = (ICommandLineBuilderInternals)builder;

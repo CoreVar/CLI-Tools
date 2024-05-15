@@ -7,27 +7,56 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
-using System.Reflection;
 
 namespace CoreVar.CommandLineInterface;
 
+/// <summary>
+/// Builds the definition for command line applications.
+/// </summary>
+/// <param name="name">The name of the executable for the CLI app.</param>
+/// <param name="options">The command line options.</param>
 public class CommandLineBuilder(string name, CommandLineOptions options) : ICommandLineBuilder, ICommandLineBuilderInternals
 {
     private readonly List<Action<IHostApplicationBuilder>> _hostBuilderDelegates = [];
     private readonly List<Action<IHost>> _hostSetups = [];
 
+    /// <summary>
+    /// Creates a <see cref="CommandLineBuilder"/> instance for building the definition of a command line application.
+    /// </summary>
+    /// <returns>The <see cref="CommandLineBuilder"/> instance.</returns>
     public static CommandLineBuilder Create()
         => Create(Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]));
 
+    /// <summary>
+    /// Creates a <see cref="CommandLineBuilder"/> instance for building the definition of a command line application.
+    /// </summary>
+    /// <param name="options">The command line options.</param>
+    /// <returns>The <see cref="CommandLineBuilder"/> instance.</returns>
     public static CommandLineBuilder Create(CommandLineOptions options)
         => new(Path.GetFileNameWithoutExtension(Environment.GetCommandLineArgs()[0]), options);
 
+    /// <summary>
+    /// Creates a <see cref="CommandLineBuilder"/> instance for building the definition of a command line application.
+    /// </summary>
+    /// <param name="name">The name of the executable for the CLI app.</param>
+    /// <returns>The <see cref="CommandLineBuilder"/> instance.</returns>
     public static CommandLineBuilder Create(string name)
         => Create(name, new());
 
+    /// <summary>
+    /// Creates a <see cref="CommandLineBuilder"/> instance for building the definition of a command line application.
+    /// </summary>
+    /// <param name="name">The name of the executable for the CLI app.</param>
+    /// <param name="options">The command line options.</param>
+    /// <returns>The <see cref="CommandLineBuilder"/> instance.</returns>
     public static CommandLineBuilder Create(string name, CommandLineOptions options)
         => new(name, options);
 
+    /// <summary>
+    /// Builds the definition into a CliApp that can be run.
+    /// </summary>
+    /// <returns>The <see cref="CliApp"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">Gets thrown if REPL is enabled and an execute handler exists for the root application.</exception>
     public CliApp Build()
     {
         var hostBuilder = new HostApplicationBuilder();
