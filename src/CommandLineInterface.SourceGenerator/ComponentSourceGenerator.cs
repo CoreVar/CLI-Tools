@@ -102,7 +102,8 @@ using Microsoft.Extensions.DependencyInjection;
         indent++;
 
         sourceBuilder.Append($@"
-{new string(' ', indent * 4)}public static {typeName} Default {{ get; }} = new();
+{new string(' ', indent * 4)}public static {typeName} Default => _default.Value;
+{new string(' ', indent * 4)}private static readonly Lazy<{typeName}> _default = new();
 
 {new string(' ', indent * 4)}protected override void Build(IExecutableBuilder builder)
 {new string(' ', indent * 4)}{{
