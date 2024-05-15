@@ -11,6 +11,15 @@
     <Company>CoreVar, LLC</Company>
     <Description>The CoreVar.CommandLineInterface.Blazor library extends the powerful features of the CoreVar CLI framework into the Blazor environment, allowing developers to seamlessly integrate command-line interfaces within Blazor applications. This package provides custom Blazor components and services that facilitate the creation of interactive CLI tools, enabling real-time command execution and response within a web interface. It’s perfect for developers aiming to enhance their Blazor applications with dynamic CLI capabilities, improving user interaction and backend manageability.</Description>
     <Copyright>Copyright © 2024 CoreVar, LLC. All rights reserved.</Copyright>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 

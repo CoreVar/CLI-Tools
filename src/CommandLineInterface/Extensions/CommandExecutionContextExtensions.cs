@@ -180,7 +180,7 @@ public static partial class BuilderExtensions
     /// </summary>
     /// <typeparam name="T1">The first argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1> GetArguments<T1>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>> argumentBuilders)
         => new(context.GetArgument(argumentBuilders.Item1));
@@ -191,7 +191,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T1">The first argument type.</typeparam>
     /// <typeparam name="T2">The second argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2> GetArguments<T1, T2>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>> argumentBuilders)
         => new(
@@ -205,7 +205,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T2">The second argument type.</typeparam>
     /// <typeparam name="T3">The third argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2, T3> GetArguments<T1, T2, T3>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>, ICommandArgumentBuilder<T3>> argumentBuilders)
         => new(
@@ -221,7 +221,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T3">The third argument type.</typeparam>
     /// <typeparam name="T4">The fourth argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2, T3, T4> GetArguments<T1, T2, T3, T4>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>, ICommandArgumentBuilder<T3>, ICommandArgumentBuilder<T4>> argumentBuilders)
         => new(
@@ -239,7 +239,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T4">The fourth argument type.</typeparam>
     /// <typeparam name="T5">The fifth argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2, T3, T4, T5> GetArguments<T1, T2, T3, T4, T5>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>, ICommandArgumentBuilder<T3>, ICommandArgumentBuilder<T4>, ICommandArgumentBuilder<T5>> argumentBuilders)
         => new(
@@ -259,7 +259,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T5">The fifth argument type.</typeparam>
     /// <typeparam name="T6">The sixth argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2, T3, T4, T5, T6> GetArguments<T1, T2, T3, T4, T5, T6>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>, ICommandArgumentBuilder<T3>, ICommandArgumentBuilder<T4>, ICommandArgumentBuilder<T5>, ICommandArgumentBuilder<T6>> argumentBuilders)
         => new(
@@ -281,7 +281,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="T6">The sixth argument type.</typeparam>
     /// <typeparam name="T7">The seventh argument type.</typeparam>
     /// <param name="context">The <see cref="CommandExecutionContext"/> for the currently executing command.</param>
-    /// <param name="argumentBuilder">The argument builder.</param>
+    /// <param name="argumentBuilders">The argument builders.</param>
     /// <returns>The argument values.</returns>
     public static ValueTuple<T1, T2, T3, T4, T5, T6, T7> GetArguments<T1, T2, T3, T4, T5, T6, T7>(this CommandExecutionContext context, ValueTuple<ICommandArgumentBuilder<T1>, ICommandArgumentBuilder<T2>, ICommandArgumentBuilder<T3>, ICommandArgumentBuilder<T4>, ICommandArgumentBuilder<T5>, ICommandArgumentBuilder<T6>, ICommandArgumentBuilder<T7>> argumentBuilders)
         => new(
