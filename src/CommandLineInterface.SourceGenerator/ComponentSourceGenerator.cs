@@ -91,7 +91,7 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 using Microsoft.Extensions.DependencyInjection;
 
 ");
-        var typeNamespace = componentContextSpec.Type.ContainingNamespace.Name;
+        var typeNamespace = componentContextSpec.Type.ContainingNamespace.ToDisplayString();
         var typeName = componentContextSpec.Type.Name;
 
         sourceBuilder.AppendLine($@"namespace {typeNamespace};");
