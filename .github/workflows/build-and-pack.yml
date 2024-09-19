@@ -35,9 +35,9 @@ jobs:
 
     - name: Pack
       run: |
-        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{stepts.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
-        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{stepts.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
-        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{stepts.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
       working-directory: ./src
 
     - name: Upload NuGet Package as Artifact
