@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
 2. **Add the CoreVar.CommandLineInterface NuGet Package**:
    ```bash
-   dotnet add package CoreVar.CommandLineInterface --prerelease
+   dotnet add package CoreVar.CommandLineInterface
    ```
 
 3. **Modify Program.cs**
