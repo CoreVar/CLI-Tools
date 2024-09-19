@@ -17,6 +17,10 @@ public class CommandLineOptions
 
     public string? ReplPrompt { get; set; }
 
+    public string? InitializationPrompt { get; set; }
+
+    public bool? ShowInitializationPromptForReplOnly { get; set; }
+
     public string? DefaultHelpOptionName { get; set; }
 
     public string[]? DefaultHelpOptionAliases { get; set; }

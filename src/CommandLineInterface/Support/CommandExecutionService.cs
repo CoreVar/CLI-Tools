@@ -40,7 +40,11 @@ public class CommandExecutionService(
     private async void ExecutionLoop()
     {
         var applicationContext = (ApplicationContext)appContext;
-        while (!appContext.IsShuttingDown)
+
+		if (options.InitializationPrompt is not null && (appContext.IsReplMode || !(options.ShowInitializationPromptForReplOnly == true)))
+			await consoleControl.WriteLine(options.InitializationPrompt);
+
+		while (!appContext.IsShuttingDown)
         {
             string[] arguments;
             if (appContext.IsReplMode)

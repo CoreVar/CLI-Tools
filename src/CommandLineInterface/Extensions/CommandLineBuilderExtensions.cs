@@ -41,9 +41,11 @@ public static partial class BuilderExtensions
     /// <returns>The builder.</returns>
     public static ICommandLineBuilder InitializationPrompt(this ICommandLineBuilder builder, string prompt, bool replOnly = true)
     {
-
-
-        return builder;
+        var builderInternals = (ICommandLineBuilderInternals)builder;
+		var commandLineBuilderInternals = (ICommandLineBuilderInternals)builder;
+        commandLineBuilderInternals.CommandLineOptions.InitializationPrompt = prompt;
+        commandLineBuilderInternals.CommandLineOptions.ShowInitializationPromptForReplOnly = replOnly;
+		return builder;
     }
 
     /// <summary>
