@@ -27,10 +27,11 @@ jobs:
     - name: Restore and Build Projects
       run: |
         dotnet restore
-        dotnet build ./src/CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
-        dotnet build ./src/CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
-        dotnet build ./src/CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
-        dotnet build ./src/CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
+        dotnet build ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
+      working-directory: ./src
 
     - name: Pack
       run: |
