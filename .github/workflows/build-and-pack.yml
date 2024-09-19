@@ -1,12 +1,12 @@
 name: Build and Package CoreVar CLI
 
 on:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - 'releases/**'
   pull_request:
     branches:
-      - releases/
+      - 'releases/**'
 
 jobs:
   build:
