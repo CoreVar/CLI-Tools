@@ -4,7 +4,7 @@
 public class StartComponent : CommandLineComponent
 {
 
-	public async ValueTask Execute()
+	public async ValueTask ExecuteAsync()
 	{
 		await Console.WriteLine("Starting...");
 	}
