@@ -27,26 +27,24 @@ jobs:
     - name: Restore and Build Projects
       run: |
         dotnet restore
-        dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
-      working-directory: ./src
+        dotnet build ./src/CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
+        dotnet build ./src/CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
+        dotnet build ./src/CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
+        dotnet build ./src/CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
 
     - name: Pack
       run: |
-        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
-        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
-        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
-      working-directory: ./src
+        dotnet pack ./src/CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
+        dotnet pack ./src/CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
+        dotnet pack ./src/CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
+        dotnet pack ./templates/ProjectTemplates.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
 
     - name: Upload NuGet Package as Artifact
       uses: actions/upload-artifact@v4
       with:
         name: NuGet-Packages
-        path: ./src/nupkgs/*.nupkg
+        path: ./nupkgs/*.nupkg
 
 
     - name: Publish NuGet Packages
       run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_PUBLISH_KEY }} --source https://api.nuget.org/v3/index.json
-      working-directory: ./src
