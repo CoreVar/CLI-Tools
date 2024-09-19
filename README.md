@@ -20,20 +20,29 @@ Ensure you have the following installed:
 - **.NET 8.0 SDK** or later
 - An IDE such as Visual Studio, VS Code, or JetBrains Rider
 
-### Setting Up Your Project
-
-1. **Create a New Console Application**:
+### Setting Up a New Project
+1. **Install Project Templates (once per machine)**
    ```bash
-   dotnet new console -n MyCLIApp
-   cd MyCLIApp
-   ```
+   dotnet new install CoreVar.CommandLineInterface.Templates
+   ``` 
+2. **Create a New Simple CLI Project**
+    - Simple CLI
+      ```bash
+      dotnet new cli-simple
+      ``` 
+    - OR Components CLI
+      ```bash
+      dotnet new cli-components
+      ```
 
-2. **Add the CoreVar.CommandLineInterface NuGet Package**:
+### Add Tools to an Existing Project
+
+1. **Add the CoreVar.CommandLineInterface NuGet Package**:
    ```bash
    dotnet add package CoreVar.CommandLineInterface
    ```
 
-3. **Modify Program.cs**
+2. **Modify Program.cs**
     ```
     using CoreVar.CommandLineInterface;
 
@@ -55,7 +64,7 @@ Ensure you have the following installed:
 
     This is the simplest exampl of how to build a CLI application.
 
-4. **Explore the Examples**:
+5. **Explore the Examples**:
    Navigate to the examples within this repository to see how to implement various CLI functionalities.
 
 ### Running the Examples
