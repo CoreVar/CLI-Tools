@@ -26,6 +26,7 @@ jobs:
     
     - name: Restore and Build Projects
       run: |
+        dotnet restore
         dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
