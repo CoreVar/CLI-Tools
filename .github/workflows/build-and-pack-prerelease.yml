@@ -1,12 +1,12 @@
-name: Build and Package CoreVar CLI
+name: Build and Package CoreVar CLI (Prerelease)
 
 on:
   push:
     branches:
-      - 'releases/**'
+      - 'prereleases/**'
   pull_request:
     branches:
-      - 'releases/**'
+      - 'prereleases/**'
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
   
     - name: Extract branch name
       shell: bash
-      run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/releases/}}" >> $GITHUB_OUTPUT
+      run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/prereleases/}}" >> $GITHUB_OUTPUT
       id: extract_branch
 
     - name: Set up .NET
@@ -35,9 +35,9 @@ jobs:
 
     - name: Pack
       run: |
-        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
-        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
-        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}
+        dotnet pack ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
       working-directory: ./src
 
     - name: Upload NuGet Package as Artifact
