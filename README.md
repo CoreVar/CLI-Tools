@@ -28,11 +28,11 @@ Ensure you have the following installed:
 2. **Create a New Simple CLI Project**
     - Simple CLI
       ```bash
-      dotnet new cli-simple
+      dotnet new cli-simple -n MyCli
       ``` 
     - OR Components CLI
       ```bash
-      dotnet new cli-components
+      dotnet new cli-components -n MyCli
       ```
 
 ### Add Tools to an Existing Project
