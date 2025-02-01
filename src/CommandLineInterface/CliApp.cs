@@ -60,6 +60,21 @@ public class CliApp(IHost host) : IAsyncDisposable
     }
 
     /// <summary>
+    /// Creates a builder and runs the command line application asynchronously.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    public static async ValueTask RunAsync(Action<ICommandLineBuilder> builder, string[] args)
+    {
+        var commandLineBuilder = CommandLineBuilder.Create();
+        builder(commandLineBuilder);
+        var cliApp = commandLineBuilder.Build(() => args);
+        await cliApp.RunAsync();
+        await cliApp.DisposeAsync();
+    }
+
+    /// <summary>
     /// Disposes the command line application.
     /// </summary>
     /// <returns>A <see cref="ValueTask"/> for the asynchronous operation.</returns>

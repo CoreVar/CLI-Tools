@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineInterface.Source
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CommandLineInterface.Blazor", "CommandLineInterface.Blazor\CommandLineInterface.Blazor.csproj", "{60370DF2-240A-4D68-A9B9-15EB355BFC7D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Tests", "..\tests\CommandLineInterface.Tests\CommandLineInterface.Tests.csproj", "{F51134BC-B193-4BC1-A027-818C8B2D0CE0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{60370DF2-240A-4D68-A9B9-15EB355BFC7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60370DF2-240A-4D68-A9B9-15EB355BFC7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60370DF2-240A-4D68-A9B9-15EB355BFC7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F51134BC-B193-4BC1-A027-818C8B2D0CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F51134BC-B193-4BC1-A027-818C8B2D0CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F51134BC-B193-4BC1-A027-818C8B2D0CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F51134BC-B193-4BC1-A027-818C8B2D0CE0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

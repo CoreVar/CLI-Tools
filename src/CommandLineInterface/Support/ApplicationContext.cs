@@ -3,7 +3,7 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 
 namespace CoreVar.CommandLineInterface.Support;
 
-public class ApplicationContext(bool isReplMode, ICommandLineBuilder commandLineBuilder) : IApplicationContext, IApplicationContextInternals, IDisposable
+public class ApplicationContext(bool isReplMode, ICommandLineBuilder commandLineBuilder, Func<string[]> argumentsRetriever) : IApplicationContext, IApplicationContextInternals, IDisposable
 {
 
     public bool IsReplMode { get; } = isReplMode;
@@ -24,4 +24,7 @@ public class ApplicationContext(bool isReplMode, ICommandLineBuilder commandLine
     public CancellationTokenSource RuntimeCancellationTokenSource { get; } = new();
 
     ICommandLineBuilder IApplicationContextInternals.CommandLineBuilder => commandLineBuilder;
+
+    public Func<string[]> ArgumentsRetriever => argumentsRetriever;
+
 }

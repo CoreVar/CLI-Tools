@@ -52,12 +52,15 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
     public static CommandLineBuilder Create(string name, CommandLineOptions options)
         => new(name, options);
 
+    public CliApp Build()
+        => Build(() => Environment.GetCommandLineArgs().Skip(1).ToArray());
+
     /// <summary>
     /// Builds the definition into a CliApp that can be run.
     /// </summary>
     /// <returns>The <see cref="CliApp"/> instance.</returns>
     /// <exception cref="InvalidOperationException">Gets thrown if REPL is enabled and an execute handler exists for the root application.</exception>
-    public CliApp Build()
+    public CliApp Build(Func<string[]> argumentsRetriever)
     {
         var hostBuilder = new HostApplicationBuilder();
         var builderInternals = (ICommandLineBuilderInternals)this;
@@ -65,7 +68,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         if (options.IsReplEnabled && builderInternals.ExecuteDelegate is not null)
             throw new InvalidOperationException("Cannot have a command executor at the root level when REPL is enabled.");
 
-        var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
+        var args = argumentsRetriever();
         var useRepl = args.Length == 0 && options.IsReplEnabled;
 
         _ = hostBuilder.Logging.AddFilter<ConsoleLoggerProvider>((category, level)
@@ -104,7 +107,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
 
         hostBuilder.Services.AddSingleton(commandTree);
 
-        var applicationContext = new ApplicationContext(useRepl, this);
+        var applicationContext = new ApplicationContext(useRepl, this, argumentsRetriever);
 
         hostBuilder.Services
             .AddSingleton<IApplicationContext>(applicationContext);

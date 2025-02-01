@@ -9,4 +9,6 @@ public interface IApplicationContext
 
     void ShouldShutdown();
 
+    Func<string[]> ArgumentsRetriever { get; }
+
 }

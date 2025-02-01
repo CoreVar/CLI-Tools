@@ -199,11 +199,10 @@ public class CommandTreeBuilder
             {
                 BuildCommandElements(element, executableBuilder);
 
+                int currentCommandArgumentPosition = 0;
                 while (nextPosition < arguments.Length)
                 {
                     commandKey = arguments[nextPosition];
-
-                    int currentCommandArgumentPosition = 0;
 
                     if (!(element.DisableHelp = executableBuilderInternals.DisableHelp))
                     {

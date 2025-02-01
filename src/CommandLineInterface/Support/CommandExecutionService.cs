@@ -66,7 +66,7 @@ public class CommandExecutionService(
             }
             else
             {
-                arguments = Environment.GetCommandLineArgs().Skip(1).ToArray();
+                arguments = appContext.ArgumentsRetriever();
             }
             await using var serviceScope = services.CreateAsyncScope();
             var context = serviceScope.ServiceProvider.GetRequiredService<CommandExecutionContext>();
