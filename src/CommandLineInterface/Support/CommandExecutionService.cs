@@ -25,10 +25,11 @@ public class CommandExecutionService(
 {
     private readonly SemaphoreSlim _executionSemaphore = new(1, 1);
     private readonly ConcurrentQueue<(string[] Arguments, Func<int, ValueTask>? Callback)> _executionQueue = [];
+    private Task? _executionTask;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _ = Task.Factory.StartNew(ExecutionLoop, TaskCreationOptions.LongRunning);
+        _executionTask = Task.Run(ExecutionLoop, cancellationToken);
         return Task.CompletedTask;
     }
 
@@ -37,7 +38,7 @@ public class CommandExecutionService(
         await consoleControl.Write(options.ReplPrompt ?? "> ");
     }
 
-    private async void ExecutionLoop()
+    private async Task ExecutionLoop()
     {
         var applicationContext = (ApplicationContext)appContext;
 
@@ -116,6 +117,7 @@ public class CommandExecutionService(
         var validationResults = CommandTreeHelpers.Validate(commandTreeContext);
         foreach (var validationResult in validationResults)
         {
+            commandExecutionContext.Result = options.ValidationErrorExitCode;
             await consoleControl.WriteErrorLine(validationResult.Message);
             return;
         }
@@ -130,17 +132,23 @@ public class CommandExecutionService(
             catch (Exception ex)
             {
                 if (commandExecutionContext.Result == 0)
-                    commandExecutionContext.Result = -1;
+                    commandExecutionContext.Result = options.CommandErrorExitCode;
 
                 await consoleControl.WriteErrorLine($"Error executing command '{CommandTreeHelpers.GetCommandName(services, commandTreeContext)}': {ex.Message}");
             }
         }
         else
+        {
+            commandExecutionContext.Result = options.ValidationErrorExitCode;
             await consoleControl.WriteErrorLine($"'{CommandTreeHelpers.GetCommandName(services, commandTreeContext)}' is not a command that can be executed.");
+        }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
-        => Task.CompletedTask;
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (_executionTask is not null && _executionTask.IsCompleted)
+            await _executionTask.ConfigureAwait(false);
+    }
 
     public async ValueTask<int> Execute(params string[] args)
     {

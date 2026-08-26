@@ -13,4 +13,6 @@ public class CommandOptionSpec
     public string? Description { get; set; }
     
     public bool IsRequired { get; set; }
+
+    public System.Collections.Generic.List<string> Aliases { get; } = new();
 }

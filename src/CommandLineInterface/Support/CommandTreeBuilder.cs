@@ -187,6 +187,7 @@ public class CommandTreeBuilder
         Dictionary<string, CommandTreeOptionContext>? optionContexts = null;
         Dictionary<string, CommandTreeArgumentContext>? argumentContexts = null;
         var hasHelpOption = false;
+        BuildCommandElements(element, executableBuilder);
         if (nextPosition < arguments.Length)
         {
             var commandKey = arguments[nextPosition];
@@ -197,8 +198,6 @@ public class CommandTreeBuilder
             }
             else
             {
-                BuildCommandElements(element, executableBuilder);
-
                 int currentCommandArgumentPosition = 0;
                 while (nextPosition < arguments.Length)
                 {

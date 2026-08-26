@@ -19,9 +19,10 @@ public partial class ComponentSourceGenerator : IIncrementalGenerator
             builder.Append(valueChar switch
             {
                 '"' => "\\\"",
-                '\n' => "\\\n",
-                '\r' => "\\\r",
-                '\t' => "\\\t",
+                '\\' => "\\\\",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
                 _ => valueChar
             });
         builder.Append("\"");
@@ -37,7 +38,9 @@ public partial class ComponentSourceGenerator : IIncrementalGenerator
                 continue;
             builder.Append(valueChar);
         }
-        if (char.IsDigit(builder[0]))
+        if (builder.Length == 0)
+            builder.Append("value");
+        else if (char.IsDigit(builder[0]))
             builder.Insert(0, '_');
         return builder.ToString();
     }
@@ -215,6 +218,9 @@ using Microsoft.Extensions.DependencyInjection;
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}.Description({CompilerSafeString(argument.Description)})");
             }
 
+            sourceBuilder.AppendLine();
+            sourceBuilder.Append($@"{new string(' ', indent * 4)}.{(argument.IsRequired ? "IsRequired" : "IsOptional")}()");
+
             indent--;
             sourceBuilder.AppendLine(";");
 
@@ -242,6 +248,15 @@ using Microsoft.Extensions.DependencyInjection;
             {
                 sourceBuilder.AppendLine();
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}.Description({CompilerSafeString(option.Description)})");
+            }
+
+            sourceBuilder.AppendLine();
+            sourceBuilder.Append($@"{new string(' ', indent * 4)}.{(option.IsRequired ? "IsRequired" : "IsOptional")}()");
+
+            if (option.Aliases.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.WithAlias({string.Join(", ", option.Aliases.Select(CompilerSafeString))})");
             }
 
             indent--;
@@ -283,7 +298,7 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}await component.{componentSpec.ExecuteMethodName}();
 {new string(' ', indent * 4)}if (component is IAsyncDisposable asyncDisposable)
 {new string(' ', (indent + 1) * 4)}await asyncDisposable.DisposeAsync();
-{new string(' ', indent * 4)}if (component is IDisposable disposable)
+{new string(' ', indent * 4)}else if (component is IDisposable disposable)
 {new string(' ', (indent + 1) * 4)}disposable.Dispose();");
 
             indent--;

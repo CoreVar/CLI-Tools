@@ -122,6 +122,7 @@ partial class ComponentSourceGenerator
                     CommandArgumentSpec? commandArgument = default;
                     string? commandElementDescription = default;
                     bool? isRequired = default;
+                    var optionAliases = new List<string>();
                     foreach (var attribute in commandProperty.GetAttributes())
                     {
                         if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAttributeType))
@@ -156,6 +157,10 @@ partial class ComponentSourceGenerator
                                 };
                             }
                         }
+                        else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAliasAttributeType))
+                        {
+                            optionAliases.Add((string)attribute.ConstructorArguments[0].Value!);
+                        }
                         else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.DescriptionAttributeType))
                         {
                             commandElementDescription = (string)attribute.ConstructorArguments[0].Value!;
@@ -181,6 +186,7 @@ partial class ComponentSourceGenerator
                     {
                         commandOption.Description = commandElementDescription;
                         commandOption.IsRequired = isRequired ?? true; // TODO: Handle fallback value for nullable types
+                        commandOption.Aliases.AddRange(optionAliases);
 
                         componentSpec.Options.Add(commandOption);
                     }
@@ -211,6 +217,12 @@ partial class ComponentSourceGenerator
                     }
                 }
             }
+            componentSpec.Arguments.Sort((left, right) =>
+            {
+                var leftIndex = left.Index is >= 0 ? left.Index.Value : int.MaxValue;
+                var rightIndex = right.Index is >= 0 ? right.Index.Value : int.MaxValue;
+                return leftIndex.CompareTo(rightIndex);
+            });
             return componentSpec;
         }
 
