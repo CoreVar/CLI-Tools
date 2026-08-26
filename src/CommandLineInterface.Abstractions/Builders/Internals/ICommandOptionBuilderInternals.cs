@@ -20,4 +20,20 @@ public interface ICommandOptionBuilderInternals : IBuilderInternals
 
     HashSet<string>? Aliases { get; set; }
 
+    object? DefaultValue { get; set; }
+
+    string? EnvironmentVariable { get; set; }
+
+    string? ConfigurationKey { get; set; }
+
+    bool IsGlobal { get; set; }
+
+    bool IsHidden { get; set; }
+
+    string? DeprecationMessage { get; set; }
+
+    List<Func<object?, string?>> Validators { get; }
+
+    List<string> Completions { get; }
+
 }

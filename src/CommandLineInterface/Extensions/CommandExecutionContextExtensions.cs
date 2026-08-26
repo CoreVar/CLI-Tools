@@ -3,6 +3,7 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 using CoreVar.CommandLineInterface.Runtime;
 using CoreVar.CommandLineInterface.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreVar.CommandLineInterface;
 
@@ -28,9 +29,33 @@ public static partial class BuilderExtensions
                 // TODO: Report error
                 return default!;
             }
+            foreach (var validator in optionBuilderInternals.Validators)
+            {
+                var message = validator(value);
+                if (message is not null)
+                    throw new ArgumentException(message, optionBuilderInternals.Name);
+            }
             return (T)value;
         }
-        return default!;
+
+        string? fallback = null;
+        if (optionBuilderInternals.EnvironmentVariable is not null)
+            fallback = Environment.GetEnvironmentVariable(optionBuilderInternals.EnvironmentVariable);
+        if (fallback is null && optionBuilderInternals.ConfigurationKey is not null)
+            fallback = context.Services.GetService<IConfiguration>()?[optionBuilderInternals.ConfigurationKey];
+
+        object? resolved = optionBuilderInternals.DefaultValue;
+        if (fallback is not null && !ValueConverter.TryConvert(fallback, typeof(T), out resolved))
+            throw new FormatException($"'{fallback}' is not a valid value for option '{optionBuilderInternals.Name}'.");
+
+        foreach (var validator in optionBuilderInternals.Validators)
+        {
+            var message = validator(resolved);
+            if (message is not null)
+                throw new ArgumentException(message, optionBuilderInternals.Name);
+        }
+
+        return resolved is null ? default! : (T)resolved;
     }
 
     /// <summary>
@@ -170,9 +195,24 @@ public static partial class BuilderExtensions
                 // TODO: Report error
                 return default!;
             }
+            foreach (var validator in argumentBuilderInternals.Validators)
+            {
+                var message = validator(value);
+                if (message is not null)
+                    throw new ArgumentException(message, argumentBuilderInternals.Name);
+            }
             return (T)value;
         }
-        return default!;
+
+        var resolved = argumentBuilderInternals.DefaultValue;
+        foreach (var validator in argumentBuilderInternals.Validators)
+        {
+            var message = validator(resolved);
+            if (message is not null)
+                throw new ArgumentException(message, argumentBuilderInternals.Name);
+        }
+
+        return resolved is null ? default! : (T)resolved;
     }
 
     /// <summary>

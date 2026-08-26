@@ -13,4 +13,7 @@ public class CommandTreeArgumentContext
 
     public required Range ValueRange { get; init; }
 
+    /// <summary>Raw values assigned to this positional argument.</summary>
+    public List<string> Values { get; } = [];
+
 }

@@ -22,4 +22,12 @@ public class CommandTreeArgument(string name)
     public List<Action<IHostApplicationBuilder>>? HostBuilders { get; set; }
     
     public List<Action<IHost>>? HostSetups { get; set; }
+
+    public object? DefaultValue { get; set; }
+
+    public bool IsVariadic { get; set; }
+
+    public List<Func<object?, string?>> Validators { get; set; } = [];
+
+    public List<string> Completions { get; set; } = [];
 }

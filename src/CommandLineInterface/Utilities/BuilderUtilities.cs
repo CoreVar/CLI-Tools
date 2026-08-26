@@ -6,6 +6,97 @@ namespace CoreVar.CommandLineInterface.Utilities;
 public class BuilderUtilities
 {
 
+    public static bool TryGetOption<T>(CommandExecutionContext context, CommandTreeOptionContext option, out object value)
+    {
+        var targetType = typeof(T);
+        var values = option.Values.Count > 0
+            ? option.Values
+            : option.ValueLength == 1 ? [context.Arguments[option.Position + 1]] : [];
+
+        if (targetType == typeof(bool) || targetType == typeof(bool?))
+        {
+            if (values.Count == 0) { value = true; return true; }
+            if (ValueConverter.TryConvert(values[^1], targetType, out var boolean)) { value = boolean!; return true; }
+        }
+
+        if (TryConvertCollection(values, targetType, out var collection))
+        {
+            value = collection!;
+            return true;
+        }
+
+        if (values.Count > 0 && ValueConverter.TryConvert(values[^1], targetType, out var converted))
+        {
+            value = converted!;
+            return true;
+        }
+
+        value = default(T)!;
+        return false;
+    }
+
+    public static bool TryGetArgument<T>(CommandExecutionContext context, CommandTreeArgumentContext argument, out object value)
+    {
+        var values = argument.Values.Count > 0
+            ? argument.Values
+            : context.Arguments[argument.ValueRange].ToList();
+
+        if (TryConvertCollection(values, typeof(T), out var collection))
+        {
+            value = collection!;
+            return true;
+        }
+
+        if (values.Count == 1 && ValueConverter.TryConvert(values[0], typeof(T), out var converted))
+        {
+            value = converted!;
+            return true;
+        }
+
+        value = default(T)!;
+        return false;
+    }
+
+    private static bool TryConvertCollection(IReadOnlyList<string> values, Type targetType, out object? value)
+    {
+        Type? itemType = null;
+        if (targetType.IsArray)
+            itemType = targetType.GetElementType();
+        else if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() is var definition &&
+                 (definition == typeof(List<>) || definition == typeof(IReadOnlyList<>) || definition == typeof(IEnumerable<>)))
+            itemType = targetType.GetGenericArguments()[0];
+
+        if (itemType is null)
+        {
+            value = null;
+            return false;
+        }
+
+        var array = Array.CreateInstance(itemType, values.Count);
+        for (var index = 0; index < values.Count; index++)
+        {
+            if (!ValueConverter.TryConvert(values[index], itemType, out var item))
+            {
+                value = null;
+                return false;
+            }
+            array.SetValue(item, index);
+        }
+
+        if (targetType.IsArray || targetType.GetGenericTypeDefinition() != typeof(List<>))
+        {
+            value = array;
+            return true;
+        }
+
+        var list = Activator.CreateInstance(targetType)!;
+        var add = targetType.GetMethod("Add")!;
+        foreach (var item in array)
+            add.Invoke(list, [item]);
+        value = list;
+        return true;
+    }
+
     public static bool TryGetStringOption(CommandExecutionContext context, CommandTreeOptionContext option, out object value)
     {
         if (option.ValueLength != 1)

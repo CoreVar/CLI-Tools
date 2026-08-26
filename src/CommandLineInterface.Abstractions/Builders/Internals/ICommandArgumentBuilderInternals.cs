@@ -11,4 +11,12 @@ public interface ICommandArgumentBuilderInternals : IBuilderInternals
 
     bool IsRequired { get; set; }
 
+    object? DefaultValue { get; set; }
+
+    bool IsVariadic { get; set; }
+
+    List<Func<object?, string?>> Validators { get; }
+
+    List<string> Completions { get; }
+
 }

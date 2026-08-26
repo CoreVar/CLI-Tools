@@ -22,8 +22,13 @@ public class CommandExecutionContext(IServiceProvider services, IConsoleControl 
 
     public IConsoleControl Console => console;
 
+    /// <summary>Gets the token cancelled when the application is shutting down.</summary>
+    public CancellationToken CancellationToken { get; private set; }
+
     public CommandTreeContext CommandTreeContext => _commandTreeContext ??= services.GetRequiredService<CommandTreeContext>();
 
     string[] ICommandExecutionContextInternals.Arguments { get => _arguments!; set => _arguments = value; }
+
+    CancellationToken ICommandExecutionContextInternals.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
 
 }

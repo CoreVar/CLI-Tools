@@ -28,6 +28,14 @@ public class CommandArgumentBuilder<T>(string name, CommandLineOptions commandLi
 
     bool ICommandArgumentBuilderInternals.IsRequired { get; set; }
 
+    object? ICommandArgumentBuilderInternals.DefaultValue { get; set; }
+
+    bool ICommandArgumentBuilderInternals.IsVariadic { get; set; }
+
+    List<Func<object?, string?>> ICommandArgumentBuilderInternals.Validators { get; } = [];
+
+    List<string> ICommandArgumentBuilderInternals.Completions { get; } = [];
+
     CommandLineOptions IBuilderInternals.CommandLineOptions => commandLineOptions;
 
     void IBuilderInternals.AddHostBuilder(Action<IHostApplicationBuilder> handler)

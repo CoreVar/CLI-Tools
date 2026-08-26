@@ -33,4 +33,22 @@ public class CommandLineOptions
     /// <summary>The exit code used when command-line validation fails.</summary>
     public int ValidationErrorExitCode { get; set; } = 2;
 
+    /// <summary>The exit code used when execution is cancelled.</summary>
+    public int CancellationExitCode { get; set; } = 130;
+
+    /// <summary>Enables suggestions for misspelled commands and options.</summary>
+    public bool EnableSuggestions { get; set; } = true;
+
+    /// <summary>Enables the built-in version option.</summary>
+    public bool EnableVersionOption { get; set; } = true;
+
+    /// <summary>The version displayed by the built-in version option.</summary>
+    public string? Version { get; set; }
+
+    /// <summary>Environment-variable prefix used by opt-in environment binding.</summary>
+    public string? EnvironmentPrefix { get; set; }
+
+    /// <summary>Whether ANSI styling may be used when the terminal supports it.</summary>
+    public bool UseColor { get; set; } = true;
+
 }

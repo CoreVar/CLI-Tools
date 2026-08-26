@@ -27,6 +27,22 @@ public abstract class CommandOptionBuilder(string name, CommandLineOptions comma
 
     HashSet<string>? ICommandOptionBuilderInternals.Aliases { get; set; }
 
+    object? ICommandOptionBuilderInternals.DefaultValue { get; set; }
+
+    string? ICommandOptionBuilderInternals.EnvironmentVariable { get; set; }
+
+    string? ICommandOptionBuilderInternals.ConfigurationKey { get; set; }
+
+    bool ICommandOptionBuilderInternals.IsGlobal { get; set; }
+
+    bool ICommandOptionBuilderInternals.IsHidden { get; set; }
+
+    string? ICommandOptionBuilderInternals.DeprecationMessage { get; set; }
+
+    List<Func<object?, string?>> ICommandOptionBuilderInternals.Validators { get; } = [];
+
+    List<string> ICommandOptionBuilderInternals.Completions { get; } = [];
+
     CommandLineOptions IBuilderInternals.CommandLineOptions => commandLineOptions;
 
     void IBuilderInternals.AddHostBuilder(Action<IHostApplicationBuilder> handler)
