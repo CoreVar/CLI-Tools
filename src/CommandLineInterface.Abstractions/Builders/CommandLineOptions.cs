@@ -27,4 +27,10 @@ public class CommandLineOptions
 
     public string? ExitCommandName { get; set; }
 
+    /// <summary>The exit code used when a command handler throws.</summary>
+    public int CommandErrorExitCode { get; set; } = 1;
+
+    /// <summary>The exit code used when command-line validation fails.</summary>
+    public int ValidationErrorExitCode { get; set; } = 2;
+
 }

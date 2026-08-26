@@ -11,35 +11,45 @@ public static class ArgumentUtilities
             return [];
 
         var argList = new List<string>();
-        var currentArg = "";
+        var currentArg = new StringBuilder();
         var inQuotes = false;
-        var escape = false;
+        var argumentStarted = false;
 
-        foreach (var c in commandLine)
+        for (var index = 0; index < commandLine.Length; index++)
         {
-            if (escape)
+            var c = commandLine[index];
+            if (c == '"')
             {
-                currentArg += c;
-                escape = false;
-            }
-            else if (c == '\\')
-                escape = true;
-            else if (c == '\"')
                 inQuotes = !inQuotes;
+                argumentStarted = true;
+            }
+            else if (c == '\\' && inQuotes && index + 1 < commandLine.Length &&
+                (commandLine[index + 1] == '\\' || commandLine[index + 1] == '"'))
+            {
+                currentArg.Append(commandLine[++index]);
+                argumentStarted = true;
+            }
             else if (char.IsWhiteSpace(c) && !inQuotes)
             {
-                if (!string.IsNullOrEmpty(currentArg))
+                if (argumentStarted)
                 {
-                    argList.Add(currentArg);
-                    currentArg = "";
+                    argList.Add(currentArg.ToString());
+                    currentArg.Clear();
+                    argumentStarted = false;
                 }
             }
             else
-                currentArg += c;
+            {
+                currentArg.Append(c);
+                argumentStarted = true;
+            }
         }
 
-        if (!string.IsNullOrEmpty(currentArg))
-            argList.Add(currentArg);
+        if (inQuotes)
+            throw new FormatException("The command line contains an unterminated quoted argument.");
+
+        if (argumentStarted)
+            argList.Add(currentArg.ToString());
 
         return [.. argList];
     }
@@ -51,7 +61,14 @@ public static class ArgumentUtilities
         {
             if (builder.Length > 0)
                 builder.Append(' ');
-            builder.Append(arg);
+            if (arg.Length == 0 || arg.Any(char.IsWhiteSpace) || arg.Contains('"'))
+            {
+                builder.Append('"');
+                builder.Append(arg.Replace("\\", "\\\\").Replace("\"", "\\\""));
+                builder.Append('"');
+            }
+            else
+                builder.Append(arg);
         }
         return builder.ToString();
     }
