@@ -1,19 +1,23 @@
-﻿@using CoreVar.CommandLineInterface.Services
+@using CoreVar.CommandLineInterface.Services
 @using CoreVar.CommandLineInterface.Utilities
+@using CoreVar.CommandLineInterface.Runtime
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-<div class="command-line-console" @onclick="OnConsoleClick">
-    <div>
+<div @ref="_terminal" class="command-line-console" role="application" aria-label="@AriaLabel" tabindex="0">
+    <div class="terminal-output" role="log" aria-live="polite" aria-relevant="additions text">
         @if (_consoleControl is not null)
         {
-            foreach (var line in _consoleControl.Lines.Take(_consoleControl.Lines.Count - 1))
+            foreach (var line in _consoleControl.Lines.Take(Math.Max(0, _consoleControl.Lines.Count - 1)))
             {
-                <div @key="@line.Key" style="min-width:2px;">
+                <div class="terminal-line" @key="line.Key">
                     @foreach (var element in line.Elements)
                     {
-                        <span @key="element.Key" style="@($"color:#aaaaaa;font-family:'Cascadia Mono', Consolas;")">@element.Text</span>
+                        <span @key="element.Key" style="@ElementStyle(element)">@element.Text</span>
                     }
-                    @if (!line.Elements.Any(e => e.Text.Length > 0))
+                    @if (line.Elements.Count == 0 || !line.Elements.Any(element => element.Text.Length > 0))
                     {
                         <span>&nbsp;</span>
                     }
@@ -21,71 +25,197 @@
             }
         }
     </div>
-    <div>
-        @if (_consoleControl is not null)
-        {
-            foreach (var element in _consoleControl.Lines.Last().Elements)
+    <div class="terminal-input-line">
+        <span class="terminal-prompt" aria-hidden="true">
+            @if (_consoleControl?.Lines.Count > 0)
             {
-                <span @key="element.Key" style="@($"color:#aaaaaa;font-family:'Cascadia Mono', Consolas;")">@element.Text</span>
+                foreach (var element in _consoleControl.Lines[^1].Elements)
+                {
+                    <span @key="element.Key" style="@ElementStyle(element)">@element.Text</span>
+                }
             }
-        }
-        <input @ref="_inputText" type="text" style="background:none;border:none;outline:none;color:#aaaaaa;margin:0;padding:0;font-family:'Cascadia Mono', Menlo, Monaco, Consolas, 'Lucida Console', 'DejaVu Sans Mono', 'Monospace', 'Courier New', monospace;" @bind="_text" @bind:event="oninput" @onkeypress="OnKeyPress" spellcheck="false" />
+        </span>
+        <label class="terminal-sr-only" for="@_inputId">Command input</label>
+        <input @ref="_input" id="@_inputId" class="terminal-input" type="text"
+               value="@_text" @oninput="OnInput" size="@Math.Max(1, _text.Length + 1)"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+               aria-label="Command input" disabled="@(_consoleControl is null)" />
     </div>
 </div>
 
 @code {
-    string _text = string.Empty;
-    ElementReference _inputText;
-    CliApp? _cliApp;
-    BlazorConsoleControl? _consoleControl;
-    ICommandExecutor? _commandExecutor;
+    private readonly string _inputId = $"cli-input-{Guid.NewGuid():N}";
+    private readonly List<string> _history = [];
+    private string _text = string.Empty;
+    private int _historyIndex;
+    private ElementReference _terminal;
+    private ElementReference _input;
+    private CliApp? _cliApp;
+    private BlazorConsoleControl? _consoleControl;
+    private IJSObjectReference? _module;
+    private IJSObjectReference? _terminalHandle;
+    private DotNetObjectReference<CommandLineConsole>? _selfReference;
+    private bool _rendered;
 
-    [Parameter]
-    public CliApp? CliApp { get; set; }
+    [Parameter] public CliApp? CliApp { get; set; }
+    [Parameter] public bool AutoFocus { get; set; } = true;
+    [Parameter] public int HistoryLimit { get; set; } = 100;
+    [Parameter] public int MaxLines { get; set; } = 2_000;
+    [Parameter] public string AriaLabel { get; set; } = "Command line terminal";
 
     protected override void OnParametersSet()
     {
-        if (_cliApp != CliApp)
+        if (ReferenceEquals(_cliApp, CliApp))
         {
-            _cliApp = CliApp;
-
-            if (_cliApp is not null)
-            {
-                _consoleControl = _cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>();
-                _commandExecutor = _cliApp.Host.Services.GetRequiredService<ICommandExecutor>();
-                _consoleControl.LinesChanged += OnConsoleLinesChanged;
-            }
-            else
-            {
-                if (_consoleControl is not null)
-                    _consoleControl.LinesChanged -= OnConsoleLinesChanged;
-                _consoleControl = null;
-                _commandExecutor = null;
-            }
-        }
-    }
-
-    private void OnConsoleLinesChanged(object? sender, EventArgs eventArgs)
-    {
-        StateHasChanged();
-    }
-
-    private void OnKeyPress(KeyboardEventArgs e)
-    {
-        if (_consoleControl is null || _commandExecutor is null)
+            if (_consoleControl is not null) _consoleControl.MaxLines = MaxLines;
             return;
+        }
+        DetachConsole();
+        _cliApp = CliApp;
+        if (_cliApp is null) return;
+        _consoleControl = _cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>();
+        _consoleControl.MaxLines = MaxLines;
+        _consoleControl.LinesChanged += OnConsoleLinesChanged;
+    }
 
-        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_rendered)
         {
-            _consoleControl.SubmitLine(_text);
-            _text = string.Empty;
-
-            StateHasChanged();
+            _rendered = true;
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/CoreVar.CommandLineInterface.Blazor/terminal.js");
+            _selfReference = DotNetObjectReference.Create(this);
+            _terminalHandle = await _module.InvokeAsync<IJSObjectReference>("initializeTerminal", _terminal, _input, _selfReference, AutoFocus);
         }
     }
 
-    private async void OnConsoleClick()
+    private void OnInput(ChangeEventArgs args) => _text = args.Value?.ToString() ?? string.Empty;
+
+    [JSInvokable]
+    public async Task HandleTerminalKey(string key, bool ctrlKey, bool shiftKey)
     {
-        await _inputText.FocusAsync();
+        if (_consoleControl is null) return;
+        switch (key)
+        {
+            case "Enter": Submit(); break;
+            case "ArrowUp": MoveHistory(-1); break;
+            case "ArrowDown": MoveHistory(1); break;
+            case "Tab": Complete(); break;
+            case "c" when ctrlKey:
+                _text = string.Empty;
+                _consoleControl.CancelLine();
+                break;
+            case "l" when ctrlKey:
+                _consoleControl.Clear();
+                break;
+            case "u" when ctrlKey:
+            case "Escape":
+                _text = string.Empty;
+                break;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Submit()
+    {
+        var command = _text;
+        if (!string.IsNullOrWhiteSpace(command) && (_history.Count == 0 || _history[^1] != command))
+        {
+            _history.Add(command);
+            if (_history.Count > Math.Max(1, HistoryLimit)) _history.RemoveAt(0);
+        }
+        _historyIndex = _history.Count;
+        _text = string.Empty;
+        _consoleControl!.SubmitLine(command);
+    }
+
+    private void MoveHistory(int delta)
+    {
+        if (_history.Count == 0) return;
+        _historyIndex = Math.Clamp(_historyIndex + delta, 0, _history.Count);
+        _text = _historyIndex == _history.Count ? string.Empty : _history[_historyIndex];
+    }
+
+    private void Complete()
+    {
+        var candidates = GetCompletions(_text).Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+        if (candidates.Length == 0) return;
+        var tokenStart = _text.Length == 0 || char.IsWhiteSpace(_text[^1]) ? _text.Length : _text.LastIndexOfAny([' ', '\t']) + 1;
+        var current = _text[tokenStart..];
+        var prefix = CommonPrefix(candidates);
+        if (candidates.Length == 1 || prefix.Length > current.Length)
+        {
+            _text = _text[..tokenStart] + (candidates.Length == 1 ? candidates[0] + " " : prefix);
+            return;
+        }
+        _consoleControl!.ShowCompletions(_text, candidates);
+    }
+
+    private IEnumerable<string> GetCompletions(string input)
+    {
+        if (_cliApp is null) return [];
+        string[] tokens;
+        try { tokens = ArgumentUtilities.ParseArguments(input); }
+        catch (FormatException) { return []; }
+        var hasCurrent = input.Length > 0 && !char.IsWhiteSpace(input[^1]);
+        var current = hasCurrent && tokens.Length > 0 ? tokens[^1] : string.Empty;
+        var completed = hasCurrent ? tokens.Take(tokens.Length - 1) : tokens;
+        var element = _cliApp.Host.Services.GetRequiredService<CommandTree>().Root;
+        foreach (var token in completed)
+            if (element.Children.TryGetValue(token, out var child)) element = child;
+
+        if (completed.LastOrDefault() is { } previous && TryGetOption(element, previous, out var option) && option.Completions.Count > 0)
+            return option.Completions.Where(value => value.StartsWith(current, StringComparison.OrdinalIgnoreCase));
+
+        IEnumerable<string> values = current.StartsWith('-')
+            ? (element.Options?.Keys.AsEnumerable() ?? []).Concat(element.OptionAliases?.Keys.AsEnumerable() ?? []).Append("--help")
+            : element.Children.Values.Where(child => !child.IsHidden).Select(child => child.Name);
+        return values.Where(value => value.StartsWith(current, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryGetOption(CommandTreeElement element, string name, out CommandTreeOption option)
+    {
+        if (element.OptionAliases?.TryGetValue(name, out var canonical) == true) name = canonical;
+        if (element.Options?.TryGetValue(name, out var found) == true) { option = found; return true; }
+        option = null!;
+        return false;
+    }
+
+    private static string CommonPrefix(IReadOnlyList<string> values)
+    {
+        var first = values[0];
+        var length = first.Length;
+        for (var index = 1; index < values.Count; index++)
+        {
+            length = Math.Min(length, values[index].Length);
+            var position = 0;
+            while (position < length && char.ToUpperInvariant(first[position]) == char.ToUpperInvariant(values[index][position])) position++;
+            length = position;
+        }
+        return first[..length];
+    }
+
+    private static string ElementStyle(ConsoleTextElement element)
+        => $"color:#{element.Color.R:X2}{element.Color.G:X2}{element.Color.B:X2};font-weight:{(element.IsBold ? 700 : 400)}";
+
+    private void OnConsoleLinesChanged(object? sender, EventArgs eventArgs) => _ = InvokeAsync(StateHasChanged);
+
+    private void DetachConsole()
+    {
+        if (_consoleControl is not null) _consoleControl.LinesChanged -= OnConsoleLinesChanged;
+        _consoleControl = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        DetachConsole();
+        if (_terminalHandle is not null)
+        {
+            try { await _terminalHandle.InvokeVoidAsync("dispose"); } catch (JSDisconnectedException) { }
+            await _terminalHandle.DisposeAsync();
+        }
+        if (_module is not null) await _module.DisposeAsync();
+        _selfReference?.Dispose();
     }
 }

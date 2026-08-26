@@ -175,7 +175,13 @@ public class CommandExecutionService(
         {
             try
             {
-                ((ICommandExecutionContextInternals)commandExecutionContext).CancellationToken = applicationLifetime.ApplicationStopping;
+                var interruptSource = consoleControl as IConsoleInterruptSource;
+                interruptSource?.ResetInterrupt();
+                using var linkedCancellation = interruptSource is null ? null :
+                    CancellationTokenSource.CreateLinkedTokenSource(
+                        applicationLifetime.ApplicationStopping, interruptSource.InterruptToken);
+                ((ICommandExecutionContextInternals)commandExecutionContext).CancellationToken =
+                    linkedCancellation?.Token ?? applicationLifetime.ApplicationStopping;
 
                 if (element.DeprecationMessage is not null)
                     await consoleControl.WriteErrorLine($"Warning: {element.DeprecationMessage}");
