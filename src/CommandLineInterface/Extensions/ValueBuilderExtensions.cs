@@ -22,6 +22,14 @@ public static class ValueBuilderExtensions
         return builder;
     }
 
+    /// <summary>Binds from an environment variable derived from the app prefix and option name.</summary>
+    public static ICommandOptionBuilder<T> FromEnvironment<T>(this ICommandOptionBuilder<T> builder)
+    {
+        var metadata = (ICommandOptionBuilderInternals)builder;
+        var name = metadata.Name.TrimStart('-').Replace('-', '_').ToUpperInvariant();
+        return builder.FromEnvironment($"{metadata.CommandLineOptions.EnvironmentPrefix}{name}");
+    }
+
     public static ICommandOptionBuilder<T> FromConfiguration<T>(this ICommandOptionBuilder<T> builder, string key)
     {
         var metadata = (ICommandOptionBuilderInternals)builder;
@@ -29,6 +37,10 @@ public static class ValueBuilderExtensions
         metadata.IsRequired = false;
         return builder;
     }
+
+    /// <summary>Binds from a configuration key derived from the option name.</summary>
+    public static ICommandOptionBuilder<T> FromConfiguration<T>(this ICommandOptionBuilder<T> builder)
+        => builder.FromConfiguration(((ICommandOptionBuilderInternals)builder).Name.TrimStart('-').Replace('-', ':'));
 
     public static ICommandOptionBuilder<T> Global<T>(this ICommandOptionBuilder<T> builder, bool global = true)
     {

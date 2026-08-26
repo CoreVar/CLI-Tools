@@ -168,6 +168,13 @@ using Microsoft.Extensions.DependencyInjection;
 
         indent++;
 
+        if (componentSpec.Aliases.Count > 0)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Alias({string.Join(", ", componentSpec.Aliases.Select(CompilerSafeString))});");
+        if (componentSpec.IsHidden)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Hidden();");
+        if (componentSpec.DeprecationMessage is not null)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Deprecated({CompilerSafeString(componentSpec.DeprecationMessage)});");
+
         var hasSetup =
             componentSpec.SetupHostBuilderMethodName is not null ||
             componentSpec.SetupServicesMethodName is not null ||
@@ -221,6 +228,17 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.AppendLine();
             sourceBuilder.Append($@"{new string(' ', indent * 4)}.{(argument.IsRequired ? "IsRequired" : "IsOptional")}()");
 
+            if (argument.IsVariadic)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Variadic()");
+            }
+            if (argument.Completions.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Complete({string.Join(", ", argument.Completions.Select(CompilerSafeString))})");
+            }
+
             indent--;
             sourceBuilder.AppendLine(";");
 
@@ -257,6 +275,36 @@ using Microsoft.Extensions.DependencyInjection;
             {
                 sourceBuilder.AppendLine();
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}.WithAlias({string.Join(", ", option.Aliases.Select(CompilerSafeString))})");
+            }
+            if (option.EnvironmentVariable is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.FromEnvironment({CompilerSafeString(option.EnvironmentVariable)})");
+            }
+            if (option.ConfigurationKey is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.FromConfiguration({CompilerSafeString(option.ConfigurationKey)})");
+            }
+            if (option.IsGlobal)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Global()");
+            }
+            if (option.IsHidden)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Hidden()");
+            }
+            if (option.DeprecationMessage is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Deprecated({CompilerSafeString(option.DeprecationMessage)})");
+            }
+            if (option.Completions.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Complete({string.Join(", ", option.Completions.Select(CompilerSafeString))})");
             }
 
             indent--;

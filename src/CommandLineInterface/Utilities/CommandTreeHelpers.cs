@@ -69,37 +69,40 @@ public static class CommandTreeHelpers
         var currentElement = commandTreeContext.Root;
         do
         {
-            if (currentElement.Position < 0)
-                continue;
-
-            if (argumentMap[currentElement.Position])
-                throw new InvalidOperationException("Cannot map command, argument already mapped.");
-            argumentMap[currentElement.Position] = true;
+            if (currentElement.Position >= 0)
+            {
+                if (argumentMap[currentElement.Position])
+                    throw new InvalidOperationException("Cannot map command, argument already mapped.");
+                argumentMap[currentElement.Position] = true;
+            }
 
             if (currentElement.Child is null)
             {
                 if (currentElement.Options is not null)
                     foreach (var optionKvp in currentElement.Options)
                     {
-                        if (argumentMap[optionKvp.Value.Position])
-                            throw new InvalidOperationException("Cannot map option, argument already mapped.");
-                        argumentMap[optionKvp.Value.Position] = true;
-                        for (var i = 0; i < optionKvp.Value.ValueLength; i++)
+                        foreach (var optionPosition in optionKvp.Value.Positions)
                         {
-                            var position = optionKvp.Value.Position + 1 + i;
-                            if (argumentMap[position])
-                                throw new InvalidOperationException("Cannot map option value, argument already mapped.");
-                            argumentMap[position] = true;
+                            if (argumentMap[optionPosition])
+                                throw new InvalidOperationException("Cannot map option, argument already mapped.");
+                            argumentMap[optionPosition] = true;
+                            for (var i = 0; i < optionKvp.Value.ValueLength; i++)
+                            {
+                                var position = optionPosition + 1 + i;
+                                if (argumentMap[position])
+                                    throw new InvalidOperationException("Cannot map option value, argument already mapped.");
+                                argumentMap[position] = true;
+                            }
                         }
                     }
 
                 if (currentElement.Arguments is not null)
                     foreach (var argumentKvp in currentElement.Arguments)
-                        for (var i = argumentKvp.Value.ValueRange.Start.Value; i < argumentKvp.Value.ValueRange.End.Value; i++)
+                        foreach (var position in argumentKvp.Value.Positions)
                         {
-                            if (argumentMap[i])
+                            if (argumentMap[position])
                                 throw new InvalidOperationException("Cannot map argument value, argument already mapped.");
-                            argumentMap[i] = true;
+                            argumentMap[position] = true;
                         }
 
             }
@@ -107,6 +110,8 @@ public static class CommandTreeHelpers
 
         for (var i = 0; i < argumentMap.Length; i++)
         {
+            if (commandTreeContext.Arguments[i] == "--")
+                continue;
             if (argumentMap[i])
                 continue;
             yield return new CommandTreeValidationResult

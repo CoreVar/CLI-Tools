@@ -26,9 +26,21 @@ public class CommandTreeBuilder
     private static void AddArgumentContext(ref Dictionary<string, CommandTreeArgumentContext>? contexts, CommandTreeArgument argument, int start, int end, string[] arguments)
     {
         contexts ??= [];
+        if (contexts.TryGetValue(argument.Name, out var existing))
+        {
+            for (var index = start; index < end; index++)
+            {
+                existing.Values.Add(arguments[index]);
+                existing.Positions.Add(index);
+            }
+            return;
+        }
         var context = new CommandTreeArgumentContext { Argument = argument, ValueRange = new Range(start, end) };
         for (var index = start; index < end; index++)
+        {
             context.Values.Add(arguments[index]);
+            context.Positions.Add(index);
+        }
         contexts.Add(argument.Name, context);
     }
 
@@ -178,11 +190,19 @@ public class CommandTreeBuilder
             else
             {
                 var currentArgumentPosition = 0;
+                var endOfOptions = false;
                 while (nextPosition < arguments.Length)
                 {
                     argument = arguments[nextPosition];
 
-                    if (!element.DisableHelp)
+                    if (!endOfOptions && argument == "--")
+                    {
+                        endOfOptions = true;
+                        nextPosition++;
+                        continue;
+                    }
+
+                    if (!endOfOptions && !element.DisableHelp)
                         if (element.HelpOptionComparer is not null)
                         {
                             if (element.HelpOptionComparer(argument))
@@ -197,10 +217,10 @@ public class CommandTreeBuilder
                         }
 
 
-                    if (element.OptionAliases is not null && element.OptionAliases.TryGetValue(argument, out var commandOptionName) == true)
+                    if (!endOfOptions && element.OptionAliases is not null && element.OptionAliases.TryGetValue(argument, out var commandOptionName) == true)
                         argument = commandOptionName;
 
-                    if (element.Options?.TryGetValue(argument, out var commandOption) == true)
+                    if (!endOfOptions && element.Options?.TryGetValue(argument, out var commandOption) == true)
                     {
                         AddOptionContext(ref optionContexts, commandOption, nextPosition, arguments);
                         if (commandOption.AcceptsValue)
@@ -209,10 +229,9 @@ public class CommandTreeBuilder
                     else if (element.Arguments?.Count > currentArgumentPosition)
                     {
                         var commandArgument = element.Arguments[currentArgumentPosition++];
-                        var end = commandArgument.IsVariadic ? arguments.Length : nextPosition + 1;
-                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, end, arguments);
+                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, nextPosition + 1, arguments);
                         if (commandArgument.IsVariadic)
-                            nextPosition = arguments.Length - 1;
+                            currentArgumentPosition--;
                     }
                     nextPosition++;
                 }
@@ -250,11 +269,19 @@ public class CommandTreeBuilder
             else
             {
                 int currentCommandArgumentPosition = 0;
+                var endOfOptions = false;
                 while (nextPosition < arguments.Length)
                 {
                     commandKey = arguments[nextPosition];
 
-                    if (!(element.DisableHelp = executableBuilderInternals.DisableHelp))
+                    if (!endOfOptions && commandKey == "--")
+                    {
+                        endOfOptions = true;
+                        nextPosition++;
+                        continue;
+                    }
+
+                    if (!endOfOptions && !(element.DisableHelp = executableBuilderInternals.DisableHelp))
                     {
                         if (executableBuilderInternals.HelpOption is not null)
                         {
@@ -279,12 +306,12 @@ public class CommandTreeBuilder
                         }
                     }
 
-                    if (element.HelpOptionComparer is not null)
+                    if (!endOfOptions && element.HelpOptionComparer is not null)
                     {
                         if (element.HelpOptionComparer(arguments[nextPosition]))
                             hasHelpOption = true;
                     }
-                    else
+                    else if (!endOfOptions)
                     {
                         if (parentBuilderInternals.CommandLineOptions.OptionComparer.Equals("--help", arguments[nextPosition]) ||
                             parentBuilderInternals.CommandLineOptions.OptionComparer.Equals("-?", arguments[nextPosition]) ||
@@ -292,10 +319,10 @@ public class CommandTreeBuilder
                             hasHelpOption = true;
                     }
 
-                    if (element.OptionAliases is not null && element.OptionAliases.TryGetValue(commandKey, out var commandOptionName) == true)
+                    if (!endOfOptions && element.OptionAliases is not null && element.OptionAliases.TryGetValue(commandKey, out var commandOptionName) == true)
                         commandKey = commandOptionName;
 
-                    if (element.Options?.TryGetValue(commandKey, out var commandOption) == true)
+                    if (!endOfOptions && element.Options?.TryGetValue(commandKey, out var commandOption) == true)
                     {
                         AddOptionContext(ref optionContexts, commandOption, nextPosition, arguments);
 
@@ -305,10 +332,9 @@ public class CommandTreeBuilder
                     else if (element.Arguments?.Count > 0)
                     {
                         var commandArgument = element.Arguments[currentCommandArgumentPosition++];
-                        var end = commandArgument.IsVariadic ? arguments.Length : nextPosition + 1;
-                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, end, arguments);
+                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, nextPosition + 1, arguments);
                         if (commandArgument.IsVariadic)
-                            nextPosition = arguments.Length - 1;
+                            currentCommandArgumentPosition--;
                     }
                     nextPosition++;
                 }

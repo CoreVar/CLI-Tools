@@ -128,6 +128,16 @@ public class CommandExecutionService(
             return;
         }
 
+        if (TryFindUnknown(commandTreeContext, treeElementContext, out var unknown, out var candidates))
+        {
+            commandExecutionContext.Result = options.ValidationErrorExitCode;
+            var suggestion = options.EnableSuggestions ? FindClosest(unknown, candidates) : null;
+            await consoleControl.WriteErrorLine(suggestion is null
+                ? $"Unknown command or option '{unknown}'."
+                : $"Unknown command or option '{unknown}'. Did you mean '{suggestion}'?");
+            return;
+        }
+
 
         var validationResults = CommandTreeHelpers.Validate(commandTreeContext);
         foreach (var validationResult in validationResults)
@@ -186,6 +196,67 @@ public class CommandExecutionService(
             commandExecutionContext.Result = options.ValidationErrorExitCode;
             await consoleControl.WriteErrorLine($"'{CommandTreeHelpers.GetCommandName(services, commandTreeContext)}' is not a command that can be executed.");
         }
+    }
+
+    private static bool TryFindUnknown(CommandTreeContext context, CommandTreeElementContext executing,
+        out string unknown, out IEnumerable<string> candidates)
+    {
+        unknown = string.Empty;
+        candidates = [];
+        if (context.Arguments.Length == 0) return false;
+
+        if (context.Root.Child is null && context.Root.Element.Children.Count > 0 &&
+            context.Root.Element.Arguments?.Count is not > 0 && !context.Arguments[0].StartsWith('-'))
+        {
+            unknown = context.Arguments[0];
+            candidates = context.Root.Element.Children.Keys;
+            return true;
+        }
+
+        var consumed = new HashSet<int>();
+        if (executing.Options is not null)
+            foreach (var option in executing.Options.Values)
+                foreach (var position in option.Positions)
+                {
+                    consumed.Add(position);
+                    if (option.Option.AcceptsValue) consumed.Add(position + 1);
+                }
+        if (executing.Arguments is not null)
+            foreach (var argument in executing.Arguments.Values)
+                foreach (var position in argument.Positions) consumed.Add(position);
+
+        for (var index = executing.Position + 1; index < context.Arguments.Length; index++)
+            if (!consumed.Contains(index) && context.Arguments[index] != "--")
+            {
+                unknown = context.Arguments[index];
+                candidates = (executing.Element.Options?.Keys.AsEnumerable() ?? Enumerable.Empty<string>())
+                    .Concat(executing.Element.OptionAliases?.Keys.AsEnumerable() ?? Enumerable.Empty<string>());
+                return true;
+            }
+        return false;
+    }
+
+    private static string? FindClosest(string value, IEnumerable<string> candidates)
+    {
+        var best = candidates.Select(candidate => (candidate, distance: EditDistance(value, candidate)))
+            .OrderBy(item => item.distance).FirstOrDefault();
+        return best.candidate is not null && best.distance <= Math.Max(2, value.Length / 3) ? best.candidate : null;
+    }
+
+    private static int EditDistance(string left, string right)
+    {
+        var row = Enumerable.Range(0, right.Length + 1).ToArray();
+        for (var i = 1; i <= left.Length; i++)
+        {
+            var diagonal = row[0]; row[0] = i;
+            for (var j = 1; j <= right.Length; j++)
+            {
+                var above = row[j];
+                row[j] = Math.Min(Math.Min(row[j] + 1, row[j - 1] + 1), diagonal + (left[i - 1] == right[j - 1] ? 0 : 1));
+                diagonal = above;
+            }
+        }
+        return row[^1];
     }
 
     private static List<CoreVar.CommandLineInterface.Execution.CommandMiddleware> GetMiddleware(CommandTreeElementContext root)

@@ -14,4 +14,8 @@ public class CommandArgumentAttribute(string name) : Attribute
 
     public int Index { get; set; } = -1;
 
+    public bool Variadic { get; set; }
+
+    public string[] Completions { get; set; } = [];
+
 }

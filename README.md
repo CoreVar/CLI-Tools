@@ -4,20 +4,24 @@ Welcome to the CLI Tools repository, where we've developed a robust set of .NET 
 
 ## Features
 
-- **Command Execution**: Execute actions through simple or complex commands with full support for arguments and options.
+- **Simple authoring**: Build commands with a compact fluent API or source-generated component classes.
+- **Rich binding**: Scalars, enums, dates, paths, URIs, arrays, lists, repeated options, variadic arguments, environment variables, configuration, defaults, and response files.
+- **Production CLI behavior**: Validation, middleware, cancellation, aliases, deprecation, hidden commands, global options, typo suggestions, help, version output, and shell completion.
+- **Automation friendly**: A host-backed test harness, JSON/JSONL helpers, and generated Markdown reference documentation.
 - **Dependency Injection**: Utilizes scoped and singleton services efficiently across command executions, compatible with both single execution and REPL (Read-Eval-Print Loop) modes.
 - **Error Handling**: Robust error management with default and customizable error handling strategies.
 - **Integration with ASP.NET Core**: Examples showing how to integrate and manage an ASP.NET Core web host within CLI commands.
 - **Blazor Integration**: Advanced samples demonstrating how to embed CLI in a Blazor application for interactive command execution directly from the browser.
 - **Modular Design**: Easy to extend and customize, supporting a wide range of applications and use cases.
-- **AOT Compatible**: All capabilities made available are compatible with Ahead-of-Time compilation. (Blazor examples cannot be published with AOT due to limitations in Blazor)
+- **.NET 8 and .NET 10**: One package targets both the current LTS generations. Major package releases track .NET's even-numbered LTS cadence.
+- **AOT Compatible**: The core CLI runtime and source-generated components support trimming and Native AOT. (Blazor examples retain the platform's own publishing constraints.)
 
 ## Getting Started
 
 ### Prerequisites
 
 Ensure you have the following installed:
-- **.NET 8.0 SDK** or later
+- **.NET 8.0 SDK** or **.NET 10.0 SDK**
 - An IDE such as Visual Studio, VS Code, or JetBrains Rider
 
 ### Setting Up a New Project
@@ -62,7 +66,7 @@ Ensure you have the following installed:
     });
     ```
 
-    This is the simplest exampl of how to build a CLI application.
+    This is the simplest example of how to build a CLI application. See the [v10 guide](docs/v10.md) for validation, middleware, binding, completion, component metadata, prompting, testing, and documentation generation.
 
 5. **Explore the Examples**:
    Navigate to the examples within this repository to see how to implement various CLI functionalities.

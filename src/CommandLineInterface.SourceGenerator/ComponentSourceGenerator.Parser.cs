@@ -86,12 +86,24 @@ partial class ComponentSourceGenerator
 
             string? commandName = null;
             string? commandDescription = null;
+            List<string> componentSpecAliases = [];
+            bool commandHidden = false;
+            string? commandDeprecated = null;
             List<ComponentSpec> nestedCommands = [];
 
             foreach (var attribute in componentTypeToGenerate.GetAttributes())
             {
                 if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandNameAttributeType))
+                {
                     commandName = (string)attribute.ConstructorArguments[0].Value!;
+                    foreach (var named in attribute.NamedArguments)
+                    {
+                        if (named.Key == "Aliases")
+                            foreach (var alias in named.Value.Values) componentSpecAliases.Add((string)alias.Value!);
+                        else if (named.Key == "Hidden") commandHidden = (bool)named.Value.Value!;
+                        else if (named.Key == "Deprecated") commandDeprecated = (string?)named.Value.Value;
+                    }
+                }
                 else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.DescriptionAttributeType))
                     commandDescription = (string)attribute.ConstructorArguments[0].Value!;
                 else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass!.OriginalDefinition, knownSymbols.ComponentAttributeType))
@@ -108,8 +120,12 @@ partial class ComponentSourceGenerator
             {
                 Name = commandName,
                 Description = commandDescription,
-                Type = componentTypeToGenerate
+                Type = componentTypeToGenerate,
+                IsHidden = commandHidden,
+                DeprecationMessage = commandDeprecated
             };
+
+            componentSpec.Aliases.AddRange(componentSpecAliases);
 
             foreach (var nestedCommand in nestedCommands)
                 componentSpec.NestedCommands.Add(nestedCommand);
@@ -134,6 +150,16 @@ partial class ComponentSourceGenerator
                                 TargetPropertyName = commandProperty.Name,
                                 TargetPropertyType = commandProperty.Type
                             };
+                            foreach (var named in attribute.NamedArguments)
+                            {
+                                if (named.Key == "EnvironmentVariable") commandOption.EnvironmentVariable = (string?)named.Value.Value;
+                                else if (named.Key == "ConfigurationKey") commandOption.ConfigurationKey = (string?)named.Value.Value;
+                                else if (named.Key == "Global") commandOption.IsGlobal = (bool)named.Value.Value!;
+                                else if (named.Key == "Hidden") commandOption.IsHidden = (bool)named.Value.Value!;
+                                else if (named.Key == "Deprecated") commandOption.DeprecationMessage = (string?)named.Value.Value;
+                                else if (named.Key == "Completions")
+                                    foreach (var value in named.Value.Values) commandOption.Completions.Add((string)value.Value!);
+                            }
                         }
                         else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandArgumentAttributeType))
                         {
@@ -155,6 +181,12 @@ partial class ComponentSourceGenerator
                                     TargetPropertyName = commandProperty.Name,
                                     TargetPropertyType = commandProperty.Type
                                 };
+                                foreach (var named in attribute.NamedArguments)
+                                {
+                                    if (named.Key == "Variadic") commandArgument.IsVariadic = (bool)named.Value.Value!;
+                                    else if (named.Key == "Completions")
+                                        foreach (var value in named.Value.Values) commandArgument.Completions.Add((string)value.Value!);
+                                }
                             }
                         }
                         else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAliasAttributeType))

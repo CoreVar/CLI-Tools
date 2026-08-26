@@ -20,22 +20,31 @@ public class SourceGeneratorTests
         Assert.True(arguments[0].IsRequired);
         Assert.False(arguments[1].IsRequired);
         Assert.NotNull(command.Options);
-        Assert.True(command.Options!["output"].IsRequired);
+        Assert.False(command.Options!["output"].IsRequired); // alternate sources make the CLI token optional
         Assert.Contains("o", command.Options!["output"].Aliases!);
         Assert.Equal("output", command.OptionAliases!["o"]);
+        Assert.Contains("gen", command.Aliases);
+        Assert.True(command.IsHidden);
+        Assert.Equal("Use generated-v2.", command.DeprecationMessage);
+        Assert.Equal("CLI_OUTPUT", command.Options["output"].EnvironmentVariable);
+        Assert.Equal("Generated:Output", command.Options["output"].ConfigurationKey);
+        Assert.True(command.Options["output"].IsGlobal);
+        Assert.Contains("json", command.Options["output"].Completions);
+        Assert.True(arguments[1].IsVariadic);
+        Assert.Contains("tail", arguments[1].Completions);
     }
 }
 
-[CommandName("generated")]
+[CommandName("generated", Aliases = ["gen"], Hidden = true, Deprecated = "Use generated-v2.")]
 public class GeneratedMetadataComponent : CommandLineComponent
 {
-    [CommandArgument("second", Index = 1), Optional]
+    [CommandArgument("second", Index = 1, Variadic = true, Completions = ["tail"]), Optional]
     public string Second { get; set; } = "fallback";
 
     [CommandArgument("first", Index = 0), Required]
     public string? First { get; set; }
 
-    [CommandOption("output"), CommandOptionAlias("o"), Required]
+    [CommandOption("output", EnvironmentVariable = "CLI_OUTPUT", ConfigurationKey = "Generated:Output", Global = true, Completions = ["json", "text"]), CommandOptionAlias("o"), Required]
     public string? Output { get; set; }
 
     public Task ExecuteAsync() => Task.CompletedTask;

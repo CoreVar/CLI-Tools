@@ -51,4 +51,7 @@ public class CommandLineOptions
     /// <summary>Whether ANSI styling may be used when the terminal supports it.</summary>
     public bool UseColor { get; set; } = true;
 
+    /// <summary>Optional localization hook for built-in CLI text.</summary>
+    public Func<string, string>? Localize { get; set; }
+
 }

@@ -12,4 +12,16 @@ public class CommandOptionAttribute(string name) : Attribute
 
     public string Name => name;
 
+    public string? EnvironmentVariable { get; set; }
+
+    public string? ConfigurationKey { get; set; }
+
+    public bool Global { get; set; }
+
+    public bool Hidden { get; set; }
+
+    public string? Deprecated { get; set; }
+
+    public string[] Completions { get; set; } = [];
+
 }

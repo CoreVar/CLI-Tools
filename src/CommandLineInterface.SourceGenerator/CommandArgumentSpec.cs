@@ -16,4 +16,8 @@ public class CommandArgumentSpec
     public ITypeSymbol TargetPropertyType { get; set; } = default!;
 
     public bool IsRequired { get; internal set; }
+
+    public bool IsVariadic { get; set; }
+
+    public System.Collections.Generic.List<string> Completions { get; } = new();
 }

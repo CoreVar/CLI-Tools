@@ -13,6 +13,12 @@ public class ComponentSpec
 
     public string? Description { get; set; }
 
+    public List<string> Aliases { get; } = [];
+
+    public bool IsHidden { get; set; }
+
+    public string? DeprecationMessage { get; set; }
+
     public List<ComponentSpec> NestedCommands { get; } = [];
 
     public List<CommandOptionSpec> Options { get; } = [];

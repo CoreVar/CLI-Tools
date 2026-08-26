@@ -15,7 +15,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
   
     - name: Extract branch name
       shell: bash
@@ -23,9 +23,11 @@ jobs:
       id: extract_branch
 
     - name: Set up .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: |
+          8.0.x
+          10.0.x
     
     - name: Restore and Build Projects
       run: |
@@ -35,6 +37,12 @@ jobs:
         dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
         dotnet build ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
       working-directory: ./src
+
+    - name: Test .NET 8 and .NET 10
+      run: dotnet test ./tests/CommandLineInterface.Tests/CommandLineInterface.Tests.csproj --configuration Release --no-restore
+
+    - name: Native AOT smoke test
+      run: dotnet publish ./tests/CommandLineInterface.AotSmoke/CommandLineInterface.AotSmoke.csproj --configuration Release --runtime linux-x64 --self-contained true
 
     - name: Pack
       run: |

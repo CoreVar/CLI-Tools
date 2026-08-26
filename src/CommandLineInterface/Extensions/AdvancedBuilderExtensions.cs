@@ -56,4 +56,19 @@ public static class AdvancedBuilderExtensions
         ((ICommandLineBuilderInternals)builder).CommandLineOptions.EnableSuggestions = enabled;
         return builder;
     }
+
+    /// <summary>Localizes built-in labels while leaving command metadata under application control.</summary>
+    public static ICommandLineBuilder Localize(this ICommandLineBuilder builder, Func<string, string> translator)
+    {
+        ArgumentNullException.ThrowIfNull(translator);
+        ((ICommandLineBuilderInternals)builder).CommandLineOptions.Localize = translator;
+        return builder;
+    }
+
+    /// <summary>Sets the prefix used by parameterless environment binding.</summary>
+    public static ICommandLineBuilder EnvironmentPrefix(this ICommandLineBuilder builder, string prefix)
+    {
+        ((ICommandLineBuilderInternals)builder).CommandLineOptions.EnvironmentPrefix = prefix;
+        return builder;
+    }
 }

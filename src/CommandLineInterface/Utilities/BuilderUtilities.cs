@@ -1,5 +1,6 @@
 ﻿using CoreVar.CommandLineInterface.Builders;
 using CoreVar.CommandLineInterface.Runtime;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CoreVar.CommandLineInterface.Utilities;
 
@@ -57,6 +58,9 @@ public class BuilderUtilities
         return false;
     }
 
+    [UnconditionalSuppressMessage("Aot", "IL3050", Justification = "The closed collection type is rooted by the generic Option<T>/Argument<T> call site.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2067", Justification = "The closed List<T> type is rooted by the generic call site.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "Only List<T>.Add is accessed and the closed List<T> is rooted by the generic call site.")]
     private static bool TryConvertCollection(IReadOnlyList<string> values, Type targetType, out object? value)
     {
         Type? itemType = null;
