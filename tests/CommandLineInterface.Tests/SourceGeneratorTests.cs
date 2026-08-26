@@ -33,6 +33,18 @@ public class SourceGeneratorTests
         Assert.True(arguments[1].IsVariadic);
         Assert.Contains("tail", arguments[1].Completions);
     }
+
+    [Fact]
+    public async Task ExecuteParametersBecomeArgumentsOptionsAndCancellation()
+    {
+        var builder = CommandLineBuilder.Create("test");
+        builder.Components<SignatureContext>();
+        await using var app = builder.Build(() => ["signature", "world", "--times", "2"]);
+        var command = app.Host.Services.GetRequiredService<CommandTree>().Root.Children["signature"];
+
+        Assert.Contains(command.Arguments!, argument => argument.Name == "name");
+        Assert.Contains("--times", command.Options!.Keys);
+    }
 }
 
 [CommandName("generated", Aliases = ["gen"], Hidden = true, Deprecated = "Use generated-v2.")]
@@ -52,3 +64,13 @@ public class GeneratedMetadataComponent : CommandLineComponent
 
 [Component<GeneratedMetadataComponent>]
 public partial class GeneratedMetadataContext : ComponentContext;
+
+[CommandName("signature")]
+public sealed class SignatureComponent : CommandLineComponent
+{
+    public Task ExecuteAsync(string name, [CommandOption("--times")] int times, CancellationToken cancellationToken)
+        => Task.CompletedTask;
+}
+
+[Component<SignatureComponent>]
+public partial class SignatureContext : ComponentContext;

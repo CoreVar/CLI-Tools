@@ -54,4 +54,10 @@ public class CommandLineOptions
     /// <summary>Optional localization hook for built-in CLI text.</summary>
     public Func<string, string>? Localize { get; set; }
 
+    /// <summary>Maximum number of commands retained by the REPL history.</summary>
+    public int ReplHistoryLimit { get; set; } = 100;
+
+    /// <summary>Built-in REPL command that displays command history.</summary>
+    public string? HistoryCommandName { get; set; } = "history";
+
 }

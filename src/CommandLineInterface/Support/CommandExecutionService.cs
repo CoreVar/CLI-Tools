@@ -29,6 +29,7 @@ public class CommandExecutionService(
     private readonly SemaphoreSlim _executionSemaphore = new(1, 1);
     private readonly ConcurrentQueue<(string[] Arguments, Func<int, ValueTask>? Callback)> _executionQueue = [];
     private Task? _executionTask;
+    private readonly List<string> _replHistory = [];
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -64,6 +65,28 @@ public class CommandExecutionService(
                     applicationContext.ShouldShutdown();
                     continue;
                 }
+
+                if (currentLine == "!!")
+                {
+                    if (_replHistory.Count == 0)
+                    {
+                        await consoleControl.WriteErrorLine("No commands in history.");
+                        continue;
+                    }
+                    currentLine = _replHistory[^1];
+                    await consoleControl.WriteLine(currentLine);
+                }
+
+                if (options.HistoryCommandName is not null && options.CommandComparer.Equals(currentLine, options.HistoryCommandName))
+                {
+                    for (var index = 0; index < _replHistory.Count; index++)
+                        await consoleControl.WriteLine($"{index + 1,4}  {_replHistory[index]}");
+                    continue;
+                }
+
+                _replHistory.Add(currentLine);
+                if (_replHistory.Count > Math.Max(1, options.ReplHistoryLimit))
+                    _replHistory.RemoveAt(0);
 
                 arguments = ArgumentUtilities.ExpandArguments(ArgumentUtilities.ParseArguments(currentLine));
 

@@ -22,4 +22,5 @@ public class CommandOptionSpec
     public bool IsHidden { get; set; }
     public string? DeprecationMessage { get; set; }
     public System.Collections.Generic.List<string> Completions { get; } = new();
+    public int ParameterIndex { get; set; } = -1;
 }

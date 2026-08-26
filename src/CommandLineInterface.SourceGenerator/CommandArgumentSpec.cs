@@ -20,4 +20,5 @@ public class CommandArgumentSpec
     public bool IsVariadic { get; set; }
 
     public System.Collections.Generic.List<string> Completions { get; } = new();
+    public int ParameterIndex { get; set; } = -1;
 }

@@ -243,9 +243,12 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.AppendLine(";");
 
 
-            indent += 2;
-            propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{argument.TargetPropertyName} = context.GetArgument({argumentParameterName});");
-            indent -= 2;
+            if (argument.ParameterIndex < 0)
+            {
+                indent += 2;
+                propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{argument.TargetPropertyName} = context.GetArgument({argumentParameterName});");
+                indent -= 2;
+            }
         }
 
         foreach (var option in componentSpec.Options)
@@ -311,9 +314,12 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.AppendLine(";");
 
 
-            indent += 2;
-            propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{option.TargetPropertyName} = context.GetOption({optionParameterName});");
-            indent -= 2;
+            if (option.ParameterIndex < 0)
+            {
+                indent += 2;
+                propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{option.TargetPropertyName} = context.GetOption({optionParameterName});");
+                indent -= 2;
+            }
         }
 
         var hasElement = componentSpec.Description is not null ||
@@ -343,10 +349,10 @@ using Microsoft.Extensions.DependencyInjection;
 
             sourceBuilder.Append(propertyAssignmentsBuilder);
 
-            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}await component.{componentSpec.ExecuteMethodName}();
-{new string(' ', indent * 4)}if (component is IAsyncDisposable asyncDisposable)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}await component.{componentSpec.ExecuteMethodName}({BuildExecuteArguments(componentSpec)});
+{new string(' ', indent * 4)}if ((object)component is IAsyncDisposable asyncDisposable)
 {new string(' ', (indent + 1) * 4)}await asyncDisposable.DisposeAsync();
-{new string(' ', indent * 4)}else if (component is IDisposable disposable)
+{new string(' ', indent * 4)}else if ((object)component is IDisposable disposable)
 {new string(' ', (indent + 1) * 4)}disposable.Dispose();");
 
             indent--;
@@ -364,6 +370,18 @@ using Microsoft.Extensions.DependencyInjection;
 
         indent--;
         sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}}});");
+    }
+
+    private string BuildExecuteArguments(ComponentSpec component)
+    {
+        if (component.ExecuteParameterCount == 0) return string.Empty;
+        var values = new string[component.ExecuteParameterCount];
+        foreach (var index in component.CancellationTokenParameters) values[index] = "context.CancellationToken";
+        foreach (var argument in component.Arguments.Where(item => item.ParameterIndex >= 0))
+            values[argument.ParameterIndex] = $"context.GetArgument({CompilerSafeVariableName(argument.Name)}Argument)";
+        foreach (var option in component.Options.Where(item => item.ParameterIndex >= 0))
+            values[option.ParameterIndex] = $"context.GetOption({CompilerSafeVariableName(option.Name)}Option)";
+        return string.Join(", ", values);
     }
 
 }

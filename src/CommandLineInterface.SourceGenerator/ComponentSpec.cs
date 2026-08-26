@@ -26,6 +26,10 @@ public class ComponentSpec
     public List<CommandArgumentSpec> Arguments { get; } = [];
 
     public string? ExecuteMethodName { get; set; }
+
+    public int ExecuteParameterCount { get; set; }
+
+    public List<int> CancellationTokenParameters { get; } = [];
     
     public string? SetupHostBuilderMethodName { get; set; }
     
