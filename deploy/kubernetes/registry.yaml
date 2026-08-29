@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Secret
+metadata: { name: corevar-cli-registry }
+stringData:
+  api-keys: "demo=change-this-key"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: corevar-cli-registry }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 10Gi } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: corevar-cli-registry }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: corevar-cli-registry } }
+  template:
+    metadata: { labels: { app: corevar-cli-registry } }
+    spec:
+      containers:
+        - name: registry
+          image: ghcr.io/corevar/cli-registry:latest
+          ports: [{ containerPort: 8080 }]
+          env:
+            - { name: COREVAR_REGISTRY_DATA, value: /data }
+            - name: COREVAR_REGISTRY_API_KEYS
+              valueFrom: { secretKeyRef: { name: corevar-cli-registry, key: api-keys } }
+          readinessProbe: { httpGet: { path: /healthz, port: 8080 } }
+          volumeMounts: [{ name: data, mountPath: /data }]
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: corevar-cli-registry }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: corevar-cli-registry }
+spec:
+  selector: { app: corevar-cli-registry }
+  ports: [{ port: 80, targetPort: 8080 }]

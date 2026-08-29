@@ -30,26 +30,31 @@ jobs:
           10.0.x
     
     - name: Restore and Build Projects
-      run: |
-        dotnet restore
-        dotnet build ./CommandLineInterface.SourceGenerator/CommandLineInterface.SourceGenerator.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface/CommandLineInterface.csproj --configuration Release --no-restore
-        dotnet build ./CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj --configuration Release --no-restore
-      working-directory: ./src
+      run: dotnet build ./src/CLI-Tools.sln --configuration Release
 
     - name: Test .NET 8 and .NET 10
       run: dotnet test ./tests/CommandLineInterface.Tests/CommandLineInterface.Tests.csproj --configuration Release --no-restore
 
     - name: Native AOT smoke test
-      run: dotnet publish ./tests/CommandLineInterface.AotSmoke/CommandLineInterface.AotSmoke.csproj --configuration Release --runtime linux-x64 --self-contained true
+      run: |
+        dotnet publish ./tests/CommandLineInterface.AotSmoke/CommandLineInterface.AotSmoke.csproj --configuration Release --runtime linux-x64 --self-contained true
+        dotnet publish ./src/CommandLineInterface.Launcher/CommandLineInterface.Launcher.csproj --framework net10.0 --configuration Release --runtime linux-x64 --self-contained true
+        cp ./tests/CommandLineInterface.AotSmoke/bin/Release/net10.0/linux-x64/publish/CommandLineInterface.AotSmoke ./tests/CommandLineInterface.LauncherSmoke/versions/1.0.0/smoke
+        COREVAR_CLI_HOME="$PWD/tests/CommandLineInterface.LauncherSmoke" ./src/CommandLineInterface.Launcher/bin/Release/net10.0/linux-x64/publish/corevar-cli-launcher hello Ada --count 1
 
     - name: Pack
       run: |
         dotnet pack ./src/CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./src/CommandLineInterface/CommandLineInterface.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./src/CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./src/CommandLineInterface.Modules/CommandLineInterface.Modules.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./src/CommandLineInterface.Distribution/CommandLineInterface.Distribution.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./src/CommandLineInterface.Publishing/CommandLineInterface.Publishing.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./src/CoreVar.Cli/CoreVar.Cli.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./templates/ProjectTemplates.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+
+    - name: Publish registry container payload
+      run: dotnet publish ./src/CommandLineInterface.Registry/CommandLineInterface.Registry.csproj -c Release -o registry-publish --no-restore
 
     - name: Upload NuGet Package as Artifact
       uses: actions/upload-artifact@v4

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CoreVar.CommandLineInterface.Registry</AssemblyName>
+    <RootNamespace>CoreVar.CommandLineInterface.Registry</RootNamespace>
+    <Title>CoreVar CLI Registry</Title><Authors>Jeff Scherrer</Authors><Company>CoreVar, LLC</Company>
+    <Description>Self-hosted, multi-tenant release and module registry for CoreVar command-line applications.</Description>
+    <ContainerRepository>corevar/cli-registry</ContainerRepository>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" />
+    <ProjectReference Include="..\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
+    <ProjectReference Include="..\CommandLineInterface.Publishing\CommandLineInterface.Publishing.csproj" />
+  </ItemGroup>
+</Project>

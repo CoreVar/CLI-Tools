@@ -18,6 +18,71 @@ Welcome to the CLI Tools repository, where we've developed a robust set of .NET 
 
 ## Getting Started
 
+> The modules and distribution APIs described below are the next-release workstream and are published from the corresponding prerelease branch while they stabilize.
+
+## Modules and self-distribution
+
+The next release adds language-neutral modules, transactional self-update, a self-hosted registry, static/Git-backed distribution, and native packaging generators. CoreVar does not operate a required hosted service.
+
+Enable built-in modules, locally installed external modules, module management, and self-update with one fluent setup:
+
+```csharp
+await CliApp.RunAsync(cli => cli
+    .Module<CloudModule>()
+    .ExternalModules()
+    .ModuleManagement()
+    .SelfUpdate(new()
+    {
+        Product = "acme",
+        CurrentVersion = "11.0.0",
+        Catalog = new("https://cli.acme.example/v1/public/products/acme/catalog.json")
+    }));
+```
+
+External modules run out of process and can be authored in any language. Python modules receive a private virtual environment; Node modules receive a private lockfile-restored dependency directory. Both may ship their runtime when a system runtime is inappropriate.
+
+```console
+acme module install cloud --catalog https://cli.acme.example/v1/public/modules/catalog.json
+acme module update cloud
+acme module rollback cloud
+acme update check
+acme update
+```
+
+Create module projects:
+
+```console
+dotnet new corevar-module-dotnet -n Acme.Cloud
+dotnet new corevar-module-python -n Acme.Cloud
+dotnet new corevar-module-node -n Acme.Cloud
+```
+
+Package and publish from a build pipeline:
+
+```console
+corevar package --source ./publish --launcher ./launcher/corevar-cli-launcher.exe \
+  --output ./dist/acme-win-x64.zip
+corevar publish cli --endpoint https://cli.acme.example --tenant public \
+  --product acme --version 11.0.0 --rid win-x64 \
+  --file ./dist/acme-win-x64.zip --channel stable
+```
+
+Run the registry entirely in your own environment:
+
+```console
+docker compose -f deploy/docker/compose.yml up -d
+```
+
+Or avoid running a service and generate a static registry suitable for GitHub Pages:
+
+```console
+corevar publish static-cli --root ./docs --public-base https://example.github.io/acme/ \
+  --tenant public --product acme --version 11.0.0 --rid linux-x64 \
+  --file ./dist/acme-linux-x64.zip
+```
+
+The authoring tool also generates PowerShell/POSIX bootstrap installers, winget and Homebrew metadata, Debian control files, RPM specs, MSIX App Installer documents, and WiX MSI source. See [the architecture and protocol](docs/vnext-distribution.md) and [self-hosting templates](deploy/README.md).
+
 ### Prerequisites
 
 Ensure you have the following installed:

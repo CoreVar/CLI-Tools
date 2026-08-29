@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot><AssemblyName>cli-module</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup><PackageReference Include="CoreVar.CommandLineInterface" Version="10.0.0-prerelease-18" /></ItemGroup>
+  <ItemGroup><None Include="corevar.module.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

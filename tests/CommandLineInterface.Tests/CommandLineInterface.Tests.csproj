@@ -17,6 +17,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CommandLineInterface\CommandLineInterface.csproj" />
     <ProjectReference Include="..\..\src\CommandLineInterface.Blazor\CommandLineInterface.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Publishing\CommandLineInterface.Publishing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

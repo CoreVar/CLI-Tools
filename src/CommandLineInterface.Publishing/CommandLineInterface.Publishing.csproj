@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><LangVersion>latest</LangVersion>
+    <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName><RootNamespace>CoreVar.CommandLineInterface.Publishing</RootNamespace>
+    <Title>CoreVar CLI Publishing</Title><Authors>Jeff Scherrer</Authors><Company>CoreVar, LLC</Company>
+    <Description>Publishing clients and installer/package-manager generators for CoreVar command-line applications.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile><IsAotCompatible>true</IsAotCompatible>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" />
+    <ProjectReference Include="..\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+</Project>

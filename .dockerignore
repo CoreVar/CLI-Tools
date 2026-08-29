@@ -1,0 +1,12 @@
+**/bin
+**/obj
+**/.vs
+**/node_modules
+**/__pycache__
+.git
+.github
+nupkgs
+registry-publish
+tests
+deploy
+docs

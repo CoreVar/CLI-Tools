@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><LangVersion>latest</LangVersion>
+    <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>CoreVar.CommandLineInterface.Distribution</RootNamespace>
+    <Title>CoreVar CLI Distribution</Title><Authors>Jeff Scherrer</Authors><Company>CoreVar, LLC</Company>
+    <Description>Signed releases, channels, transactional self-update, rollback, and native package-manager delegation for CoreVar CLIs.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile><IsAotCompatible>true</IsAotCompatible>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\CommandLineInterface\CommandLineInterface.csproj" /><None Include="..\..\README.md" Pack="true" PackagePath="README.md" /></ItemGroup>
+</Project>
