@@ -21,11 +21,11 @@ public sealed class DistributionTests : IDisposable
         var catalog = new ReleaseCatalog
         {
             Product = "sample", Channels = { ["stable"] = "2.0.0" },
-            Releases = [new ReleaseManifest { Version = "2.0.0", Artifacts = [new ReleaseArtifact { RuntimeIdentifier = rid, Uri = new Uri(archive), Sha256 = digest }] }]
+            Releases = [new ReleaseManifest { Version = "2.0.0", Artifacts = [new ReleaseArtifact { RuntimeIdentifier = rid, Uri = FileUri(archive), Sha256 = digest }] }]
         };
         var catalogPath = Path.Combine(_root, "catalog.json");
         await File.WriteAllTextAsync(catalogPath, JsonSerializer.Serialize(catalog));
-        var state = new InstallationState { Product = "sample", Version = "1.0.0", Catalog = new Uri(catalogPath), Provider = InstallationProvider.Direct };
+        var state = new InstallationState { Product = "sample", Version = "1.0.0", Catalog = FileUri(catalogPath), Provider = InstallationProvider.Direct };
         Directory.CreateDirectory(Path.Combine(_root, "install", "versions", "1.0.0"));
         var updater = new DirectUpdater(new DistributionPaths(Path.Combine(_root, "install")), new ReleaseCatalogClient(), new ArtifactVerifier());
 
@@ -34,6 +34,8 @@ public sealed class DistributionTests : IDisposable
         Assert.True(File.Exists(Path.Combine(_root, "install", "versions", "2.0.0", "sample.exe")));
         Assert.Equal("1.0.0", (await updater.RollbackAsync(updated)).Version);
     }
+
+    private static Uri FileUri(string path) => new UriBuilder(Uri.UriSchemeFile, string.Empty) { Path = Path.GetFullPath(path) }.Uri;
 
     [Theory]
     [InlineData(InstallationProvider.DotNetTool, "dotnet")]
