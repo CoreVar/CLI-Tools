@@ -39,6 +39,7 @@ jobs:
       run: |
         dotnet publish ./tests/CommandLineInterface.AotSmoke/CommandLineInterface.AotSmoke.csproj --configuration Release --runtime linux-x64 --self-contained true
         dotnet publish ./src/CommandLineInterface.Launcher/CommandLineInterface.Launcher.csproj --framework net10.0 --configuration Release --runtime linux-x64 --self-contained true
+        mkdir -p ./tests/CommandLineInterface.LauncherSmoke/versions/1.0.0
         cp ./tests/CommandLineInterface.AotSmoke/bin/Release/net10.0/linux-x64/publish/CommandLineInterface.AotSmoke ./tests/CommandLineInterface.LauncherSmoke/versions/1.0.0/smoke
         COREVAR_CLI_HOME="$PWD/tests/CommandLineInterface.LauncherSmoke" ./src/CommandLineInterface.Launcher/bin/Release/net10.0/linux-x64/publish/corevar-cli-launcher hello Ada --count 1
 
