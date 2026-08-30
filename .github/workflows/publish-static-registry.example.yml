@@ -15,9 +15,9 @@ jobs:
       - run: dotnet publish src/MyCli/MyCli.csproj -c Release -r linux-x64 --self-contained -o out/linux-x64
       - run: dotnet publish src/CommandLineInterface.Launcher/CommandLineInterface.Launcher.csproj -c Release -r linux-x64 --self-contained -p:PublishAot=true -o out/launcher
       - run: |
-          dotnet tool install --global CoreVar.Cli
-          corevar package --source out/linux-x64 --launcher out/launcher/corevar-cli-launcher --output mycli-linux-x64.zip
-          corevar publish static-cli --root docs --public-base "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" --tenant public --product mycli --version "${{ inputs.version }}" --rid linux-x64 --file mycli-linux-x64.zip
+          dotnet tool install --global CoreVar.CliTools
+          cli-tools package --source out/linux-x64 --launcher out/launcher/corevar-cli-launcher --output mycli-linux-x64.zip
+          cli-tools publish static-cli --root docs --public-base "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" --tenant public --product mycli --version "${{ inputs.version }}" --rid linux-x64 --file mycli-linux-x64.zip
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Publish CLI ${{ inputs.version }}

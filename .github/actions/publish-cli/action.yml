@@ -16,8 +16,8 @@ runs:
       env:
         COREVAR_REGISTRY_TOKEN: ${{ inputs.token }}
       run: >-
-        dotnet tool install --global CoreVar.Cli || dotnet tool update --global CoreVar.Cli;
-        corevar publish cli
+        dotnet tool install --global CoreVar.CliTools || dotnet tool update --global CoreVar.CliTools;
+        cli-tools publish cli
         --endpoint '${{ inputs.endpoint }}'
         --tenant '${{ inputs.tenant }}'
         --product '${{ inputs.product }}'

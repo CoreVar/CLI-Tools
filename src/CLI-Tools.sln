@@ -23,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Regist
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Publishing", "CommandLineInterface.Publishing\CommandLineInterface.Publishing.csproj", "{8143B3C8-7CD9-4587-A2AA-AA3A446C3DD3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreVar.Cli", "CoreVar.Cli\CoreVar.Cli.csproj", "{735DE3BF-3096-4340-87F2-62DF53E9807C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreVar.CliTools", "CoreVar.CliTools\CoreVar.CliTools.csproj", "{735DE3BF-3096-4340-87F2-62DF53E9807C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

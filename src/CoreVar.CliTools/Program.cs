@@ -3,7 +3,7 @@ using CoreVar.CommandLineInterface.Publishing;
 
 await CliApp.RunAsync(cli => cli
     .Version(typeof(Program).Assembly.GetName().Version?.ToString() ?? "development")
-    .Description("Packages and publishes CoreVar CLI applications and modules.")
+    .Description("Open-source packaging and distribution tools for CLI applications and modules.")
     .Command("package", command =>
     {
         var source = command.Option<string>("--source").IsRequired();

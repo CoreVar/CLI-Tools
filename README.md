@@ -60,9 +60,10 @@ dotnet new corevar-module-node -n Acme.Cloud
 Package and publish from a build pipeline:
 
 ```console
-corevar package --source ./publish --launcher ./launcher/corevar-cli-launcher.exe \
+dotnet tool install --global CoreVar.CliTools --prerelease
+cli-tools package --source ./publish --launcher ./launcher/corevar-cli-launcher.exe \
   --output ./dist/acme-win-x64.zip
-corevar publish cli --endpoint https://cli.acme.example --tenant public \
+cli-tools publish cli --endpoint https://cli.acme.example --tenant public \
   --product acme --version 11.0.0 --rid win-x64 \
   --file ./dist/acme-win-x64.zip --channel stable
 ```
@@ -76,7 +77,7 @@ docker compose -f deploy/docker/compose.yml up -d
 Or avoid running a service and generate a static registry suitable for GitHub Pages:
 
 ```console
-corevar publish static-cli --root ./docs --public-base https://example.github.io/acme/ \
+cli-tools publish static-cli --root ./docs --public-base https://example.github.io/acme/ \
   --tenant public --product acme --version 11.0.0 --rid linux-x64 \
   --file ./dist/acme-linux-x64.zip
 ```

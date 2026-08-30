@@ -20,7 +20,7 @@ public static class InstallerScriptGenerator
         New-Item -ItemType Directory -Force $versionDir | Out-Null
         Expand-Archive $temp $versionDir -Force
         $launcher = Join-Path $versionDir '.corevar\launcher.exe'
-        if (-not (Test-Path $launcher)) { throw 'The artifact does not contain the CoreVar stable launcher. Package it with corevar package --launcher.' }
+        if (-not (Test-Path $launcher)) { throw 'The artifact does not contain the CoreVar stable launcher. Package it with cli-tools package --launcher.' }
         $bin = Join-Path $InstallDir 'bin'; New-Item -ItemType Directory -Force $bin | Out-Null
         Copy-Item $launcher (Join-Path $bin '{{product}}.exe') -Force
         @{ schemaVersion='1.0'; product='{{product}}'; version=$Version; channel=$Channel; catalog='{{catalog}}'; provider='direct'; entrypoint='{{product}}' } |
@@ -61,7 +61,7 @@ public static class InstallerScriptGenerator
         mkdir -p "$INSTALL_DIR/versions/$VERSION"
         unzip -q -o "$TMP" -d "$INSTALL_DIR/versions/$VERSION"
         LAUNCHER="$INSTALL_DIR/versions/$VERSION/.corevar/launcher"
-        [ -f "$LAUNCHER" ] || { echo 'Artifact is missing the CoreVar stable launcher; package with corevar package --launcher' >&2; exit 65; }
+        [ -f "$LAUNCHER" ] || { echo 'Artifact is missing the CoreVar stable launcher; package with cli-tools package --launcher' >&2; exit 65; }
         mkdir -p "$INSTALL_DIR/bin" "$HOME/.local/bin"
         cp "$LAUNCHER" "$INSTALL_DIR/bin/{{product}}"; chmod 0755 "$INSTALL_DIR/bin/{{product}}"
         ln -sf "$INSTALL_DIR/bin/{{product}}" "$HOME/.local/bin/{{product}}"

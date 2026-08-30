@@ -51,7 +51,7 @@ jobs:
         dotnet pack ./src/CommandLineInterface.Modules/CommandLineInterface.Modules.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./src/CommandLineInterface.Distribution/CommandLineInterface.Distribution.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./src/CommandLineInterface.Publishing/CommandLineInterface.Publishing.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
-        dotnet pack ./src/CoreVar.Cli/CoreVar.Cli.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
+        dotnet pack ./src/CoreVar.CliTools/CoreVar.CliTools.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
         dotnet pack ./templates/ProjectTemplates.csproj -c Release -o nupkgs /p:PackageVersion=${{steps.extract_branch.outputs.branch}}-prerelease-${{ github.run_number }}
 
     - name: Publish registry container payload

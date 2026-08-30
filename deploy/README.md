@@ -10,4 +10,4 @@ CoreVar operates no required service. These templates deploy the same open-sourc
 
 The VM templates intentionally use ordinary Docker so they have no proprietary runtime dependency. Put TLS in front of the registry before using it across an untrusted network. Change every example key before deployment.
 
-For a service-free option, run `corevar publish static ...` against a GitHub Pages checkout, GitHub Release assets, or any static web host. Static catalogs support public downloads; private authenticated publishing happens through the host's normal Git workflow.
+For a service-free option, run `cli-tools publish static-cli ...` against a GitHub Pages checkout, GitHub Release assets, or any static web host. Static catalogs support public downloads; private authenticated publishing happens through the host's normal Git workflow.
