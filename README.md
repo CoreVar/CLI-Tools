@@ -7,6 +7,7 @@ Welcome to the CLI Tools repository, where we've developed a robust set of .NET 
 - **Simple authoring**: Build commands with a compact fluent API or source-generated component classes.
 - **Rich binding**: Scalars, enums, dates, paths, URIs, arrays, lists, repeated options, variadic arguments, environment variables, configuration, defaults, and response files.
 - **Production CLI behavior**: Validation, middleware, cancellation, aliases, deprecation, hidden commands, global options, typo suggestions, help, version output, and shell completion.
+- **Native privilege elevation**: Run selected operations through Windows UAC or `sudo` without embedding platform-specific process code in commands.
 - **Automation friendly**: A host-backed test harness, JSON/JSONL helpers, and generated Markdown reference documentation.
 - **Dependency Injection**: Utilizes scoped and singleton services efficiently across command executions, compatible with both single execution and REPL (Read-Eval-Print Loop) modes.
 - **Error Handling**: Robust error management with default and customizable error handling strategies.
@@ -83,6 +84,26 @@ cli-tools publish static-cli --root ./docs --public-base https://example.github.
 ```
 
 The authoring tool also generates PowerShell/POSIX bootstrap installers, winget and Homebrew metadata, Debian control files, RPM specs, MSIX App Installer documents, and WiX MSI source. See [the architecture and protocol](docs/vnext-distribution.md) and [self-hosting templates](deploy/README.md).
+
+### Privileged operations
+
+Elevate only the operation that needs administrative access:
+
+```csharp
+var result = await context.RunElevatedAsync(
+    "sc.exe",
+    ["create", "AcmeAgent", @"binPath=C:\Program Files\Acme\agent.exe"]);
+
+if (result.Canceled)
+    context.Console.WriteErrorLine("Administrator access was declined.");
+else
+    context.Result = result.ExitCode ?? (result.Started ? 0 : 1);
+```
+
+Use `context.IsElevated()` to avoid unnecessary prompts, or
+`context.RelaunchElevatedAsync()` when the entire current command must restart with elevated privileges.
+The default service uses Windows UAC's `runas` verb and `sudo` on Linux/macOS, preserves arguments as
+separate values, and can be replaced through dependency injection for tests or custom hosts.
 
 ### Prerequisites
 

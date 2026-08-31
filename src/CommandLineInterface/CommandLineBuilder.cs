@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using CoreVar.CommandLineInterface.Execution;
 using CoreVar.CommandLineInterface.Validation;
+using CoreVar.CommandLineInterface.Elevation;
 
 namespace CoreVar.CommandLineInterface;
 
@@ -87,6 +88,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         hostBuilder.Services
             .AddSingleton(options)
             .AddSingleton<IConsoleControl, NativeConsoleControl>()
+            .AddSingleton<IElevationService, ProcessElevationService>()
             .AddSingleton<CommandExecutionService>()
             .AddSingleton<ICommandExecutor>(sp => sp.GetRequiredService<CommandExecutionService>())
             .AddScoped<CommandExecutionContext>();
