@@ -23,7 +23,7 @@ public sealed class ReleaseSetupCoordinator(DirectUpdater updater)
         if (!ReferenceEquals(updated, current))
         {
             try { await rollback(updated, CancellationToken.None); }
-            catch (Exception rollback) { throw new AggregateException("Release readiness failed and host rollback also failed.", failure!, rollback); }
+            catch (Exception rollbackFailure) { throw new AggregateException("Release readiness failed and host rollback also failed.", failure!, rollbackFailure); }
         }
         System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure!).Throw();
         throw failure!;
