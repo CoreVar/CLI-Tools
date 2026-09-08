@@ -35,4 +35,25 @@ cli-tools publish cli \
   --rid linux-x64 --file ./acme-linux-x64.zip
 ```
 
+## Authentication and authorization
+
+The registry supports CoreID and any standards-compliant OpenID Connect provider.
+Configure JWT validation with:
+
+```yaml
+COREVAR_REGISTRY_OIDC_AUTHORITY: https://identity.example.com/
+COREVAR_REGISTRY_OIDC_AUDIENCE: corevar-cli-registry
+```
+
+CoreID tokens use the `corevar:tenant`, `permission`, and
+`corevar:registry:resource` claims. Mutating operations require a matching tenant,
+permission, and resource grant. Supported permissions are `release.publish`,
+`release.promote`, `release.revoke`, `module.publish`, `catalog.read`,
+`artifact.read`, or the tenant-wide `cli-registry.admin` permission. Resource
+grants use `product:<id>`, `module:<id>`, or a trailing wildcard.
+
+Set `COREVAR_REGISTRY_REQUIRE_AUTHENTICATED_READS=true` for private catalogs and
+artifacts. The original per-tenant API keys remain available as a compatibility
+and recovery mechanism. Omit them when all publishers use OIDC.
+
 For a service-free option, run `cli-tools publish static-cli ...` against a GitHub Pages checkout, GitHub Release assets, or any static web host. Static catalogs support public downloads; private authenticated publishing happens through the host's normal Git workflow.

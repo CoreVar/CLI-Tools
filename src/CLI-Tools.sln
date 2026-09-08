@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Publis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreVar.CliTools", "CoreVar.CliTools\CoreVar.CliTools.csproj", "{735DE3BF-3096-4340-87F2-62DF53E9807C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandLineInterface.Registry.Tests", "..\tests\CommandLineInterface.Registry.Tests\CommandLineInterface.Registry.Tests.csproj", "{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{735DE3BF-3096-4340-87F2-62DF53E9807C}.Release|x64.Build.0 = Release|Any CPU
 		{735DE3BF-3096-4340-87F2-62DF53E9807C}.Release|x86.ActiveCfg = Release|Any CPU
 		{735DE3BF-3096-4340-87F2-62DF53E9807C}.Release|x86.Build.0 = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|x64.Build.0 = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Debug|x86.Build.0 = Debug|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|x64.ActiveCfg = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|x64.Build.0 = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|x86.ActiveCfg = Release|Any CPU
+		{31EFCA4A-DD70-4EEB-AE51-4388DFF61BB7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

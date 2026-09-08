@@ -8,6 +8,7 @@
     <ContainerRepository>corevar/cli-registry</ContainerRepository>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     <ProjectReference Include="..\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" />
     <ProjectReference Include="..\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
     <ProjectReference Include="..\CommandLineInterface.Publishing\CommandLineInterface.Publishing.csproj" />

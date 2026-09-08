@@ -6,6 +6,10 @@ public sealed class RegistryOptions
     public string PathBase { get; init; } = NormalizePathBase(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_PATH_BASE"));
     public Uri? PublicBaseUri { get; init; } = ParsePublicBaseUri(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_PUBLIC_BASE_URL"));
     public bool TrustForwardedHeaders { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_TRUST_FORWARDED_HEADERS"), out var trustForwardedHeaders) && trustForwardedHeaders;
+    public string? OidcAuthority { get; init; } = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_OIDC_AUTHORITY");
+    public string OidcAudience { get; init; } = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_OIDC_AUDIENCE") ?? "corevar-cli-registry";
+    public bool OidcRequireHttpsMetadata { get; init; } = !bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_OIDC_REQUIRE_HTTPS_METADATA"), out var requireHttps) || requireHttps;
+    public bool RequireAuthenticatedReads { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_REQUIRE_AUTHENTICATED_READS"), out var authenticatedReads) && authenticatedReads;
     public bool AllowAnonymousPublish { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_ALLOW_ANONYMOUS_PUBLISH"), out var enabled) && enabled;
     public IReadOnlyDictionary<string, string> TenantKeys { get; init; } = ParseKeys(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_API_KEYS"));
 
