@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 var options = new RegistryOptions();
+builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = options.MaxUploadBytes);
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton<FileRegistryStore>();
 builder.Services.AddHealthChecks();
@@ -20,6 +21,20 @@ if (!string.IsNullOrWhiteSpace(options.OidcAuthority))
     builder.Services.AddAuthorization();
 }
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPut(context.Request.Method) && context.Request.ContentLength > options.MaxUploadBytes)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        return;
+    }
+    try { await next(); }
+    catch (RegistryUploadTooLargeException) when (!context.Response.HasStarted)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+    }
+});
 
 if (options.TrustForwardedHeaders)
 {

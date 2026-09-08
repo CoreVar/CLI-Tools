@@ -26,6 +26,7 @@ spec:
           ports: [{ containerPort: 8080 }]
           env:
             - { name: COREVAR_REGISTRY_DATA, value: /data }
+            - { name: COREVAR_REGISTRY_MAX_UPLOAD_BYTES, value: "536870912" }
             # Use these when an ingress/application gateway exposes the registry
             # below a URL prefix such as https://example.com/cli-registry.
             # - { name: COREVAR_REGISTRY_PATH_BASE, value: /cli-registry }

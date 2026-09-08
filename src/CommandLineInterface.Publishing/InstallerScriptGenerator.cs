@@ -9,7 +9,8 @@ public static class InstallerScriptGenerator
         $catalog = Invoke-RestMethod '{{catalog}}'
         if (-not $Version) { $Version = $catalog.channels.$Channel }
         $release = $catalog.releases | Where-Object version -eq $Version | Select-Object -First 1
-        $rid = if ([Environment]::Is64BitOperatingSystem) { 'win-x64' } else { 'win-x86' }
+        $arch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
+        $rid = 'win-' + $(switch ($arch) { 'x64' {'x64'} 'x86' {'x86'} 'arm64' {'arm64'} 'arm' {'arm'} default {$arch} })
         $artifact = $release.artifacts | Where-Object runtimeIdentifier -eq $rid | Select-Object -First 1
         if (-not $artifact) { throw "No artifact for $rid" }
         $temp = Join-Path ([IO.Path]::GetTempPath()) "{{product}}-$Version.zip"
@@ -29,6 +30,21 @@ public static class InstallerScriptGenerator
           $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
           if (($userPath -split ';') -notcontains $bin) { [Environment]::SetEnvironmentVariable('Path', (($userPath.TrimEnd(';') + ';' + $bin).TrimStart(';')), 'User') }
         }
+        if ($release.bundle) {
+          $bundleDir = Join-Path $versionDir '.corevar'; New-Item -ItemType Directory -Force $bundleDir | Out-Null
+          $bundlePath = Join-Path $bundleDir 'module-bundle.json'
+          Invoke-WebRequest $release.bundle.manifest -OutFile $bundlePath
+          $bundleHash = (Get-FileHash $bundlePath -Algorithm SHA256).Hash
+          if ($bundleHash -ne $release.bundle.sha256.Replace('sha256:','')) { throw 'Module bundle SHA-256 verification failed' }
+          $env:COREVAR_MODULE_BUNDLE = $bundlePath
+          $env:COREVAR_MODULE_BUNDLE_SHA256 = $release.bundle.sha256
+          $env:COREVAR_MODULE_BUNDLE_SNAPSHOT = $release.bundle.snapshot
+          if ($release.bundle.root) { $env:COREVAR_CLI_HOME = [Environment]::ExpandEnvironmentVariables($release.bundle.root) }
+        }
+        if ($release.postInstallArguments -and $release.postInstallArguments.Count -gt 0) {
+          & (Join-Path $bin '{{product}}.exe') @($release.postInstallArguments)
+          if ($LASTEXITCODE -ne 0) { throw "Post-install bootstrap failed with exit code $LASTEXITCODE" }
+        }
         Remove-Item $temp -Force
         Write-Host "Installed {{product}} $Version to $InstallDir"
         """;
@@ -45,13 +61,17 @@ public static class InstallerScriptGenerator
         command -v unzip >/dev/null || { echo 'unzip is required' >&2; exit 69; }
         JSON="$(curl -fsSL "$CATALOG")"
         eval "$(COREVAR_CATALOG_JSON="$JSON" python3 - "$CHANNEL" "$VERSION" <<'PY'
-        import json,os,platform,sys
+        import json,os,platform,shlex,sys
         d=json.loads(os.environ['COREVAR_CATALOG_JSON']); channel,version=sys.argv[1:]
         version=version or d['channels'][channel]
         rid=('osx' if platform.system()=='Darwin' else 'linux')+'-'+({'x86_64':'x64','aarch64':'arm64'}.get(platform.machine(),platform.machine()))
         r=next(x for x in d['releases'] if x['version']==version)
         a=next(x for x in r['artifacts'] if x['runtimeIdentifier']==rid)
-        print("VERSION='{}'".format(version)); print("URI='{}'".format(a['uri'])); print("SHA='{}'".format(a['sha256'].replace('sha256:','').lower()))
+        b=r.get('bundle') or {}; args=r.get('postInstallArguments') or []
+        print('VERSION={}'.format(shlex.quote(version))); print('URI={}'.format(shlex.quote(a['uri']))); print('SHA={}'.format(shlex.quote(a['sha256'].replace('sha256:','').lower())))
+        print('BUNDLE_URI={}'.format(shlex.quote(b.get('manifest','')))); print('BUNDLE_SHA={}'.format(shlex.quote(b.get('sha256','').replace('sha256:','').lower())))
+        print('BUNDLE_SNAPSHOT={}'.format(shlex.quote(b.get('snapshot','')))); print('BUNDLE_ROOT={}'.format(shlex.quote(b.get('root',''))))
+        print('POST_INSTALL_ARGS={}'.format(shlex.quote(json.dumps(args))))
         PY
         )"
         TMP="${TMPDIR:-/tmp}/{{product}}-$VERSION.zip"
@@ -66,6 +86,20 @@ public static class InstallerScriptGenerator
         cp "$LAUNCHER" "$INSTALL_DIR/bin/{{product}}"; chmod 0755 "$INSTALL_DIR/bin/{{product}}"
         ln -sf "$INSTALL_DIR/bin/{{product}}" "$HOME/.local/bin/{{product}}"
         printf '{"schemaVersion":"1.0","product":"{{product}}","version":"%s","channel":"%s","catalog":"%s","provider":"direct","entrypoint":"{{product}}"}\n' "$VERSION" "$CHANNEL" "$CATALOG" > "$INSTALL_DIR/state.json"
+        if [ -n "$BUNDLE_URI" ]; then
+          BUNDLE_PATH="$INSTALL_DIR/versions/$VERSION/.corevar/module-bundle.json"
+          curl -fsSL "$BUNDLE_URI" -o "$BUNDLE_PATH"
+          BUNDLE_ACTUAL="$(sha256sum "$BUNDLE_PATH" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$BUNDLE_PATH" | cut -d' ' -f1)"
+          [ "$BUNDLE_ACTUAL" = "$BUNDLE_SHA" ] || { echo 'Module bundle SHA-256 verification failed' >&2; exit 65; }
+          export COREVAR_MODULE_BUNDLE="$BUNDLE_PATH" COREVAR_MODULE_BUNDLE_SHA256="$BUNDLE_SHA" COREVAR_MODULE_BUNDLE_SNAPSHOT="$BUNDLE_SNAPSHOT"
+          [ -z "$BUNDLE_ROOT" ] || export COREVAR_CLI_HOME="$BUNDLE_ROOT"
+        fi
+        if [ "$POST_INSTALL_ARGS" != '[]' ]; then
+          COREVAR_POST_INSTALL_ARGS="$POST_INSTALL_ARGS" python3 - "$INSTALL_DIR/bin/{{product}}" <<'PY'
+        import json,os,subprocess,sys
+        raise SystemExit(subprocess.call([sys.argv[1], *json.loads(os.environ['COREVAR_POST_INSTALL_ARGS'])]))
+        PY
+        fi
         rm -f "$TMP"
         echo "Installed {{product}} $VERSION to $INSTALL_DIR"
         """;

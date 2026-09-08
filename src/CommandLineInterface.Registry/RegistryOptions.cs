@@ -2,6 +2,7 @@ namespace CoreVar.CommandLineInterface.Registry;
 
 public sealed class RegistryOptions
 {
+    public const long DefaultMaxUploadBytes = 128L * 1024 * 1024;
     public string DataRoot { get; init; } = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_DATA") ?? "/data";
     public string PathBase { get; init; } = NormalizePathBase(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_PATH_BASE"));
     public Uri? PublicBaseUri { get; init; } = ParsePublicBaseUri(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_PUBLIC_BASE_URL"));
@@ -12,6 +13,10 @@ public sealed class RegistryOptions
     public bool RequireAuthenticatedReads { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_REQUIRE_AUTHENTICATED_READS"), out var authenticatedReads) && authenticatedReads;
     public bool AllowAnonymousPublish { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_ALLOW_ANONYMOUS_PUBLISH"), out var enabled) && enabled;
     public IReadOnlyDictionary<string, string> TenantKeys { get; init; } = ParseKeys(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_API_KEYS"));
+    public long MaxUploadBytes { get; init; } = ParseMaxUploadBytes(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_MAX_UPLOAD_BYTES"));
+
+    internal static long ParseMaxUploadBytes(string? value) =>
+        long.TryParse(value, out var parsed) && parsed > 0 ? parsed : DefaultMaxUploadBytes;
 
     private static IReadOnlyDictionary<string, string> ParseKeys(string? value)
     {
@@ -39,3 +44,5 @@ public sealed class RegistryOptions
         return new Uri(uri.AbsoluteUri.TrimEnd('/') + "/");
     }
 }
+
+public sealed class RegistryUploadTooLargeException(long maximum) : Exception($"Upload exceeds the configured {maximum}-byte limit.");

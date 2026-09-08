@@ -28,6 +28,16 @@ public sealed class ReleaseManifest
     public string? MinimumLauncherVersion { get; init; }
     public List<ReleaseArtifact> Artifacts { get; init; } = [];
     public Dictionary<string, string> Metadata { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public ReleaseBundleBootstrap? Bundle { get; init; }
+    public List<string> PostInstallArguments { get; init; } = [];
+}
+
+public sealed class ReleaseBundleBootstrap
+{
+    public required Uri Manifest { get; init; }
+    public required string Sha256 { get; init; }
+    public required string Snapshot { get; init; }
+    public string? Root { get; init; }
 }
 
 public sealed class ReleaseArtifact

@@ -112,7 +112,18 @@ public sealed class FileRegistryStore(RegistryOptions options)
         var temporary = path + ".upload-" + Guid.NewGuid().ToString("N");
         try
         {
-            await using (var output = File.Create(temporary)) await content.CopyToAsync(output, cancellationToken);
+            await using (var output = File.Create(temporary))
+            {
+                var buffer = new byte[81920];
+                long total = 0;
+                int read;
+                while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0)
+                {
+                    total += read;
+                    if (total > options.MaxUploadBytes) throw new RegistryUploadTooLargeException(options.MaxUploadBytes);
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                }
+            }
             string digest;
             long size;
             await using (var verification = File.OpenRead(temporary))

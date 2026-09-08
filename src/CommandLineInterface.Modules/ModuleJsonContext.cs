@@ -8,4 +8,6 @@ namespace CoreVar.CommandLineInterface.Modules;
 [JsonSerializable(typeof(ModuleManifest))]
 [JsonSerializable(typeof(ModuleInstallationPointer))]
 [JsonSerializable(typeof(ModuleCatalog))]
+[JsonSerializable(typeof(ModuleBundle))]
+[JsonSerializable(typeof(ModuleBundleState))]
 public partial class ModuleJsonContext : JsonSerializerContext;

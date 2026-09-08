@@ -39,6 +39,42 @@ Protocol `corevar.module.process/1` reserves these operations:
 Each invocation receives its arguments unchanged and runs in an isolated child-process environment. Hosts can supply short-lived credentials through `IModuleCredentialProvider`; credentials are added only to that child process and are never appended to command arguments or written to process-global environment variables. `ModuleInvocationContext` routes stdin, stdout, stderr, cancellation, services, and output limits through the host's `IConsoleControl`, so the same module works in native terminals, Blazor terminals, and multi-user portals without exposing an arbitrary shell.
 
 A command can declare an `output` object (`mediaType`, optional `schema`, and the argument used to request it). This lets portals and automation discover structured results without hard-coding module behavior. Command and option descriptions are also emitted in PowerShell completion tooltips.
+
+### Reproducible module bundles
+
+`corevar.cli.bundle/1` pins an immutable module snapshot. A bundle has separate `hostCompatibility` and `frameworkCompatibility` ranges, a default module `catalog`, and members pinned by ID, version, and SHA-256. A member may override its catalog and restrict runtime identifiers, platforms, or architectures. Catalogs may use the registry's existing public module-catalog/download routes; publishing remains protected by the registry's existing authentication policies.
+
+```json
+{
+  "schema": "corevar.cli.bundle/1",
+  "id": "vendor-suite",
+  "snapshot": "2026.09.08.1",
+  "hostCompatibility": "[0.1.0,0.2.0)",
+  "frameworkCompatibility": "[10.1.0,11.0.0)",
+  "catalog": "https://registry.example/v1/tenant/modules/catalog.json",
+  "modules": [
+    { "id": "vendor.product", "version": "10.1.0", "sha256": "...", "required": true,
+      "platforms": ["win", "linux", "osx"], "architectures": ["x64", "arm64"] }
+  ]
+}
+```
+
+Bundle manifests can be loaded from a local path or HTTPS URI and are verified against the SHA-256 stored in product release metadata. Required incompatibility or installation failure makes `ModuleBundleInstallResult.IsComplete` false and rolls back changes made earlier in the operation. Optional members report explicit skipped/incompatible/failure results.
+
+Hosts can install before projecting external commands:
+
+```csharp
+builder.UseModuleBundleBootstrap(options => options
+    .Manifest(Environment.GetEnvironmentVariable("COREVAR_MODULE_BUNDLE")!,
+        Environment.GetEnvironmentVariable("COREVAR_MODULE_BUNDLE_SHA256")!)
+    .HostVersion("0.1.0")
+    .Snapshot(Environment.GetEnvironmentVariable("COREVAR_MODULE_BUNDLE_SNAPSHOT")!)
+    .FrameworkVersion("10.1.0")
+    .Root(Path.Combine(userHome, ".corevar", "distribution")))
+  .ExternalModules(Path.Combine(userHome, ".corevar", "distribution"));
+```
+
+Product release manifests may include `bundle: { manifest, sha256, snapshot, root }` and `postInstallArguments: ["setup"]`. Generated PowerShell and POSIX installers download and verify that manifest, expose it to the installed host, invoke the configured arguments with the installed stable launcher, and print success only after bootstrap exits successfully. Initial bundle integrity is SHA-256 only; no signature verification is claimed.
 - Normal invocation receives command arguments unchanged and inherits the terminal streams.
 - `COREVAR_MODULE_PROTOCOL`, `COREVAR_MODULE_ID`, `COREVAR_MODULE_VERSION`, and `COREVAR_CLI_VERSION` describe the host.
 - Exit codes and Ctrl+C flow through unchanged.

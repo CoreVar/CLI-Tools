@@ -1,7 +1,32 @@
+using System.Runtime.InteropServices;
+
 namespace CoreVar.CommandLineInterface.Modules;
 
 public static class ModuleCompatibility
 {
+    public static string CurrentRuntimeIdentifier()
+    {
+        var platform = OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux";
+        var architecture = RuntimeInformation.OSArchitecture switch
+        {
+            Architecture.X64 => "x64", Architecture.X86 => "x86", Architecture.Arm64 => "arm64", Architecture.Arm => "arm",
+            var value => value.ToString().ToLowerInvariant()
+        };
+        return $"{platform}-{architecture}";
+    }
+
+    public static bool IsCompatible(ModuleBundleMember member, string runtimeIdentifier, out string? reason)
+    {
+        var parts = runtimeIdentifier.Split('-', 2);
+        var platform = parts[0]; var architecture = parts.Length > 1 ? parts[1] : string.Empty;
+        if (member.RuntimeIdentifiers.Count > 0 && !member.RuntimeIdentifiers.Contains(runtimeIdentifier, StringComparer.OrdinalIgnoreCase))
+        { reason = $"Runtime '{runtimeIdentifier}' is not supported."; return false; }
+        if (member.Platforms.Count > 0 && !member.Platforms.Contains(platform, StringComparer.OrdinalIgnoreCase))
+        { reason = $"Platform '{platform}' is not supported."; return false; }
+        if (member.Architectures.Count > 0 && !member.Architectures.Contains(architecture, StringComparer.OrdinalIgnoreCase))
+        { reason = $"Architecture '{architecture}' is not supported."; return false; }
+        reason = null; return true;
+    }
     /// <summary>Evaluates a NuGet-style inclusive/exclusive version interval such as [11.0.0,12.0.0).</summary>
     public static bool IsCompatible(string? range, Version hostVersion)
     {
