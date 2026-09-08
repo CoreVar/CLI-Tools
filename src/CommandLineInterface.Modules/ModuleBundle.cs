@@ -76,7 +76,7 @@ public sealed class ModuleBundleClient(HttpClient? client = null)
         var bundle = JsonSerializer.Deserialize(content, ModuleJsonContext.Default.ModuleBundle)
             ?? throw new InvalidDataException("The module bundle is empty.");
         if (bundle.Schema != ModuleBundle.CurrentSchema) throw new InvalidDataException($"Unsupported bundle schema '{bundle.Schema}'.");
-        if (bundle.Modules.Count == 0) throw new InvalidDataException("A module bundle must contain at least one module.");
+        if (bundle.Modules is null || bundle.Modules.Count == 0) throw new InvalidDataException("A module bundle must contain at least one module.");
         var baseUri = source.IsFile ? new Uri(Path.GetDirectoryName(source.LocalPath)! + Path.DirectorySeparatorChar) : new Uri(source, ".");
         return (bundle, baseUri);
     }
@@ -117,7 +117,8 @@ public sealed class ModuleBundleInstaller(HttpClient? client = null)
                 var catalogUri = Resolve(member.Catalog ?? bundle.Catalog
                     ?? throw new InvalidDataException($"Module '{member.Id}' has no catalog."), baseUri);
                 var catalog = await catalogs.LoadAsync(catalogUri, cancellationToken);
-                var release = ModuleCatalogClient.SelectRelease(catalog, member.Id, member.Channel, member.Version);
+                var release = ModuleCatalogClient.SelectRelease(catalog, member.Id,
+                    string.IsNullOrWhiteSpace(member.Channel) ? "stable" : member.Channel, member.Version);
                 if (!ModuleBundleClient.Normalize(release.Sha256).Equals(ModuleBundleClient.Normalize(member.Sha256), StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException($"Module '{member.Id}' catalog digest does not match the pinned bundle snapshot.");
                 var previous = await store.GetPointerAsync(member.Id, cancellationToken);

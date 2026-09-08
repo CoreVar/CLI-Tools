@@ -19,11 +19,11 @@ public static class ModuleCompatibility
     {
         var parts = runtimeIdentifier.Split('-', 2);
         var platform = parts[0]; var architecture = parts.Length > 1 ? parts[1] : string.Empty;
-        if (member.RuntimeIdentifiers.Count > 0 && !member.RuntimeIdentifiers.Contains(runtimeIdentifier, StringComparer.OrdinalIgnoreCase))
+        if (member.RuntimeIdentifiers?.Count > 0 && !member.RuntimeIdentifiers.Contains(runtimeIdentifier, StringComparer.OrdinalIgnoreCase))
         { reason = $"Runtime '{runtimeIdentifier}' is not supported."; return false; }
-        if (member.Platforms.Count > 0 && !member.Platforms.Contains(platform, StringComparer.OrdinalIgnoreCase))
+        if (member.Platforms?.Count > 0 && !member.Platforms.Contains(platform, StringComparer.OrdinalIgnoreCase))
         { reason = $"Platform '{platform}' is not supported."; return false; }
-        if (member.Architectures.Count > 0 && !member.Architectures.Contains(architecture, StringComparer.OrdinalIgnoreCase))
+        if (member.Architectures?.Count > 0 && !member.Architectures.Contains(architecture, StringComparer.OrdinalIgnoreCase))
         { reason = $"Architecture '{architecture}' is not supported."; return false; }
         reason = null; return true;
     }

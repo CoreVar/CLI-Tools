@@ -22,6 +22,18 @@ public sealed class ModuleBundleTests : IDisposable
     }
 
     [Fact]
+    public void SparseBundleMemberDefaultsToStableAndAllPlatforms()
+    {
+        const string json = """
+            {"schema":"corevar.cli.bundle/1","id":"suite","snapshot":"one","modules":[{"id":"sample","version":"1.0.0","sha256":"00","platforms":null,"architectures":null,"runtimeIdentifiers":null,"channel":null}]}
+            """;
+        var bundle = JsonSerializer.Deserialize(json, ModuleJsonContext.Default.ModuleBundle)!;
+        var member = Assert.Single(bundle.Modules);
+        Assert.True(ModuleCompatibility.IsCompatible(member, "linux-arm64", out _));
+        Assert.True(string.IsNullOrWhiteSpace(member.Channel));
+    }
+
+    [Fact]
     public async Task LocalPinnedBundleInstallsRequiredModule()
     {
         Directory.CreateDirectory(_root);
