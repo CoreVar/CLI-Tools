@@ -16,7 +16,8 @@ public static class BlazorHostApplicationBuilderExtensions
         builder.Services
             .AddSingleton<BlazorConsoleControl>()
             .AddSingleton<IConsoleControl>(sp => sp.GetRequiredService<BlazorConsoleControl>())
-            .AddSingleton<IBrowserTerminal>(sp => sp.GetRequiredService<BlazorConsoleControl>());
+            .AddSingleton<IBrowserTerminal>(sp => sp.GetRequiredService<BlazorConsoleControl>())
+            .AddSingleton<IBrowserTerminalSession, BoundCliTerminalSession>();
 
         return builder;
     }

@@ -97,4 +97,18 @@ public class BlazorConsoleControlTests
         Assert.False(console.IsInputSecret);
         Assert.Equal("Password: ", console.Lines[0].Elements.Single().Text);
     }
+
+    [Fact]
+    public async Task BoundSessionDispatchesOnlyToItsCliConsole()
+    {
+        var console = new BlazorConsoleControl();
+        IBrowserTerminalSession session = new BoundCliTerminalSession(console);
+        var read = console.ReadLine().AsTask();
+
+        await session.ResizeAsync(new(132, 43));
+        await session.SubmitAsync("module list");
+
+        Assert.Equal("module list", await read);
+        Assert.Equal(new TerminalSize(132, 43), console.Size);
+    }
 }

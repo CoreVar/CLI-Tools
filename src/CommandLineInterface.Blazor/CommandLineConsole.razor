@@ -67,6 +67,8 @@
     private ElementReference _terminal;
     private ElementReference _input;
     private CliApp? _cliApp;
+    private IBrowserTerminalSession? _session;
+    private IBrowserTerminalSession? _sessionParameter;
     private BlazorConsoleControl? _consoleControl;
     private IJSObjectReference? _module;
     private IJSObjectReference? _terminalHandle;
@@ -75,6 +77,7 @@
     private IReadOnlyList<TerminalCompletion> _completionItems = [];
 
     [Parameter] public CliApp? CliApp { get; set; }
+    [Parameter] public IBrowserTerminalSession? Session { get; set; }
     [Parameter] public bool AutoFocus { get; set; } = true;
     [Parameter] public int HistoryLimit { get; set; } = 100;
     [Parameter] public int MaxLines { get; set; } = 2_000;
@@ -83,15 +86,20 @@
 
     protected override void OnParametersSet()
     {
-        if (ReferenceEquals(_cliApp, CliApp))
+        if (ReferenceEquals(_cliApp, CliApp) && ReferenceEquals(_sessionParameter, Session))
         {
             if (_consoleControl is not null) _consoleControl.MaxLines = MaxLines;
             return;
         }
         DetachConsole();
         _cliApp = CliApp;
-        if (_cliApp is null) return;
-        _consoleControl = _cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>();
+        _sessionParameter = Session;
+        _session = Session;
+        if (_session is null && _cliApp is not null)
+            _session = _cliApp.Host.Services.GetService<IBrowserTerminalSession>()
+                ?? new BoundCliTerminalSession(_cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>());
+        if (_session is null) return;
+        _consoleControl = _session.Console;
         _consoleControl.MaxLines = MaxLines;
         _consoleControl.LinesChanged += OnConsoleLinesChanged;
     }
@@ -121,16 +129,16 @@
         if (_consoleControl is null) return;
         switch (key)
         {
-            case "Enter": Submit(); break;
+            case "Enter": await SubmitAsync(); break;
             case "ArrowUp": MoveHistory(-1); break;
             case "ArrowDown": MoveHistory(1); break;
             case "Tab": Complete(); break;
             case "c" when ctrlKey:
                 _text = string.Empty;
-                _consoleControl.CancelLine();
+                await _session!.InterruptAsync();
                 break;
             case "l" when ctrlKey:
-                _consoleControl.Clear();
+                await _session!.ClearAsync();
                 break;
             case "u" when ctrlKey:
             case "Escape":
@@ -142,9 +150,12 @@
     }
 
     [JSInvokable]
-    public void HandleTerminalResize(int columns, int rows) => _consoleControl?.Resize(columns, rows);
+    public async Task HandleTerminalResize(int columns, int rows)
+    {
+        if (_session is not null) await _session.ResizeAsync(new(columns, rows));
+    }
 
-    private void Submit()
+    private async Task SubmitAsync()
     {
         var command = _text;
         if (_consoleControl?.IsInputSecret != true && !string.IsNullOrWhiteSpace(command) && (_history.Count == 0 || _history[^1] != command))
@@ -157,7 +168,7 @@
         _historyIndex = _history.Count;
         _text = string.Empty;
         _completionItems = [];
-        _consoleControl!.SubmitLine(command);
+        await _session!.SubmitAsync(command);
     }
 
     private void MoveHistory(int delta)
