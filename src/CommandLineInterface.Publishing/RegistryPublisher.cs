@@ -60,6 +60,18 @@ public sealed class RegistryPublisher(HttpClient? client = null)
             json.RootElement.GetProperty("sha256").GetString()!, json.RootElement.GetProperty("snapshot").GetString()!);
     }
 
+    public async ValueTask CompleteReleaseAsync(Uri endpoint, string tenant, string product, string version,
+        CompleteReleaseRequest completion, string? token = null, CancellationToken cancellationToken = default)
+    {
+        var uri = Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/releases/{Escape(version)}/complete");
+        using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+            { Content = JsonContent.Create(completion, PublishingJsonContext.Default.CompleteReleaseRequest) };
+        if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await _client.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
+    }
+
     public ValueTask RevokeAsync(Uri endpoint, string tenant, string product, string? version, string? sha256,
         string reason, string? token = null, CancellationToken cancellationToken = default) =>
         PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/revocations?version={Escape(version ?? string.Empty)}&sha256={Escape(sha256 ?? string.Empty)}&reason={Escape(reason)}"), token, cancellationToken);

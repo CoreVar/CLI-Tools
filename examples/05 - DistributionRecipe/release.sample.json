@@ -1,0 +1,13 @@
+{
+  "endpoint": "https://registry.example/",
+  "tenant": "sample",
+  "product": "sample-cli",
+  "version": "1.0.0",
+  "uploadChannel": "candidate",
+  "promoteChannel": "stable",
+  "artifacts": { "win-x64": "dist/sample-cli-win-x64.zip", "linux-x64": "dist/sample-cli-linux-x64.zip" },
+  "bundleManifest": "dist/module-bundle.json",
+  "bundleSnapshot": "1.0.0",
+  "postInstallArguments": [ "setup" ],
+  "installerOutput": "dist/installers"
+}

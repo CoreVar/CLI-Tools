@@ -54,6 +54,18 @@ await CliApp.RunAsync(cli => cli
                 await context.Console.WriteLine($"Published {result.Uri} ({result.Sha256})");
             });
         })
+        .Command("release", command =>
+        {
+            var recipe = command.Option<string>("--recipe").IsRequired();
+            var token = command.Option<string?>("--token").IsOptional().FromEnvironment("COREVAR_REGISTRY_TOKEN");
+            command.Description("Publishes and validates a complete RID-matrix release from a declarative recipe, then promotes it and emits installers.")
+                .OnExecute(async context =>
+                {
+                    var value = ReleaseRecipePublisher.Load(context.GetOption(recipe));
+                    await new ReleaseRecipePublisher().PublishAsync(value, context.GetOption(token), context.CancellationToken);
+                    await context.Console.WriteLine($"Published complete {value.Product} {value.Version}; installers: {Path.GetFullPath(value.InstallerOutput)}");
+                });
+        })
         .Command("static-cli", command =>
         {
             var root = command.Option<string>("--root").IsRequired(); var publicBase = command.Option<Uri>("--public-base").IsRequired();

@@ -85,6 +85,32 @@ The cached manifest is authoritative for offline help and completion. A future s
 
 The same catalog API is supported by static JSON plus blobs; the containerized registry with filesystem, object-storage, or OCI backing; and native package sources generated from the canonical release. The container includes no dependency on CoreVar infrastructure. Cloud templates deploy it into the user's own subscription/account/project.
 
+### Complete releases from a recipe
+
+`cli-tools publish release --recipe release.json` uploads every RID artifact to a candidate channel, uploads an optional immutable module bundle, atomically validates and binds release metadata, promotes only after all required RIDs exist, and writes downloadable `install.ps1` and `install.sh` artifacts.
+
+```json
+{
+  "endpoint": "https://registry.example/",
+  "tenant": "sample",
+  "product": "sample-cli",
+  "version": "1.2.0",
+  "uploadChannel": "candidate",
+  "promoteChannel": "stable",
+  "artifacts": {
+    "win-x64": "dist/sample-cli-win-x64.zip",
+    "linux-x64": "dist/sample-cli-linux-x64.zip",
+    "osx-arm64": "dist/sample-cli-osx-arm64.zip"
+  },
+  "bundleManifest": "dist/module-bundle.json",
+  "bundleSnapshot": "1.2.0",
+  "postInstallArguments": ["setup"],
+  "installerOutput": "dist/installers"
+}
+```
+
+The registry requires durable storage, a public base URL/path-base matching its gateway, a bounded upload size large enough for the largest artifact, and either scoped API keys or OIDC permissions for `release.publish` and `release.promote`. `ReleaseSetupCoordinator.UpdateAndVerifyAsync` supplies reusable update/readiness orchestration and restores the prior direct-install host if readiness fails. Authentication providers and product-specific readiness policy remain host extension points.
+
 ## Delivery order
 
 1. Contracts and built-in modules.

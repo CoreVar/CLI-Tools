@@ -108,6 +108,26 @@ public sealed class FileRegistryStore(RegistryOptions options)
         finally { gate.Release(); }
     }
 
+    public async ValueTask CompleteReleaseAsync(string tenant, string product, string version,
+        IReadOnlyCollection<string> requiredRids, ReleaseBundleBootstrap? bundle, IReadOnlyList<string> postInstallArguments,
+        string promoteChannel, CancellationToken cancellationToken)
+    {
+        Validate(tenant); Validate(product); Validate(version); Validate(promoteChannel);
+        var gate = _locks.GetOrAdd($"release:{tenant}:{product}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken) ?? throw new KeyNotFoundException("Product catalog not found.");
+            var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase)) ?? throw new KeyNotFoundException("Release not found.");
+            var missing = requiredRids.Where(rid => !release.Artifacts.Any(item => item.RuntimeIdentifier.Equals(rid, StringComparison.OrdinalIgnoreCase))).ToArray();
+            if (missing.Length > 0) throw new InvalidOperationException($"Release is missing required artifacts: {string.Join(", ", missing)}.");
+            release.Bundle = bundle; release.PostInstallArguments.Clear(); release.PostInstallArguments.AddRange(postInstallArguments);
+            catalog.Channels[promoteChannel] = version;
+            await WriteJsonAtomicAsync(ReleaseCatalogPath(tenant, product), catalog, DistributionJsonContext.Default.ReleaseCatalog, cancellationToken);
+        }
+        finally { gate.Release(); }
+    }
+
     public async ValueTask PromoteAsync(string tenant, string product, string channel, string version,
         int percentage, string? fallbackVersion, string seed, CancellationToken cancellationToken)
     {

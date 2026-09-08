@@ -110,6 +110,20 @@ app.MapPut("/v1/{tenant}/products/{product}/bundles/{snapshot}", async (HttpRequ
     catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
 });
 
+app.MapPost("/v1/{tenant}/products/{product}/releases/{version}/complete", async (HttpRequest request, string tenant,
+    string product, string version, CompleteReleaseRequest completion, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.promote", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    try
+    {
+        await store.CompleteReleaseAsync(tenant, product, version, completion.RequiredRuntimeIdentifiers,
+            completion.Bundle, completion.PostInstallArguments, completion.PromoteChannel, token);
+        Audit(app, request, tenant, "release.complete", $"product:{product}", version);
+        return Results.NoContent();
+    }
+    catch (InvalidOperationException exception) { return Results.BadRequest(new { error = exception.Message }); }
+});
+
 app.MapPost("/v1/{tenant}/products/{product}/channels/{channel}", async (HttpRequest request, string tenant, string product,
     string channel, string version, int? percentage, string? fallbackVersion, string? seed, FileRegistryStore store, CancellationToken token) =>
 {

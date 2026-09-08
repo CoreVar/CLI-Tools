@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "sample.echo",
+  "version": "1.0.0",
+  "cliCompatibility": "[1.0.0,2.0.0)",
+  "runtime": { "kind": "native", "provisioning": "system" },
+  "entrypoints": { "any": { "path": "sample-echo" } },
+  "commands": [ { "name": "echo", "description": "Echoes text from a sample module.", "arguments": [ { "name": "text", "required": true } ] } ]
+}
