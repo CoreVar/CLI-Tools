@@ -14,7 +14,7 @@ public sealed class ModuleRunner
     {
         var entrypoint = SelectEntrypoint(manifest);
         var executable = ResolveExecutable(manifest, entrypoint);
-        IEnumerable<string> allArguments = entrypoint.Arguments;
+        IEnumerable<string> allArguments = entrypoint.Arguments ?? [];
         if (!string.IsNullOrWhiteSpace(entrypoint.Interpreter) || manifest.Runtime.Kind is ModuleRuntimeKind.Python or ModuleRuntimeKind.Node or ModuleRuntimeKind.DotNet)
             allArguments = allArguments.Prepend(ModuleRuntimeProvisioner.SafeChild(manifest.InstallDirectory, entrypoint.Path));
         allArguments = allArguments.Concat(arguments);

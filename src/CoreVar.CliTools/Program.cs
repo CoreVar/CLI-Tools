@@ -8,7 +8,7 @@ await CliApp.RunAsync(cli => cli
     {
         var source = command.Option<string>("--source").IsRequired();
         var output = command.Option<string>("--output").IsRequired();
-        var launcher = command.Option<string?>("--launcher");
+        var launcher = command.Option<string?>("--launcher").IsOptional();
         command.Description("Creates a reproducible CLI or module ZIP artifact.")
             .OnExecute(context =>
             {

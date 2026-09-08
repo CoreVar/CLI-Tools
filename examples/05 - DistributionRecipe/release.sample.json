@@ -3,6 +3,7 @@
   "tenant": "sample",
   "product": "sample-cli",
   "version": "1.0.0",
+  "frameworkVersion": "10.1.0",
   "uploadChannel": "candidate",
   "promoteChannel": "stable",
   "hostVersion": "1.0.0",
