@@ -120,7 +120,8 @@ app.MapPost("/v1/{tenant}/products/{product}/releases/{version}/complete", async
     try
     {
         await store.CompleteReleaseAsync(tenant, product, version, completion.RequiredRuntimeIdentifiers,
-            completion.Bundle, completion.PostInstallArguments, completion.PromoteChannel, token);
+            completion.Bundle, completion.PostInstallArguments, completion.PromoteChannel,
+            Version.Parse(completion.HostVersion), Version.Parse(completion.FrameworkVersion), token);
         Audit(app, request, tenant, "release.complete", $"product:{product}", version);
         return Results.NoContent();
     }

@@ -110,7 +110,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
 
     public async ValueTask CompleteReleaseAsync(string tenant, string product, string version,
         IReadOnlyCollection<string> requiredRids, ReleaseBundleBootstrap? bundle, IReadOnlyList<string> postInstallArguments,
-        string promoteChannel, CancellationToken cancellationToken)
+        string promoteChannel, Version hostVersion, Version frameworkVersion, CancellationToken cancellationToken)
     {
         Validate(tenant); Validate(product); Validate(version); Validate(promoteChannel);
         var gate = _locks.GetOrAdd($"release:{tenant}:{product}", _ => new SemaphoreSlim(1, 1));
@@ -132,6 +132,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
                 var expectedDigest = bundle.Sha256.Replace("sha256:", string.Empty, StringComparison.OrdinalIgnoreCase).Replace("-", string.Empty);
                 if (!digest.Equals(expectedDigest, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Bundle digest does not match registry content.");
                 if (postInstallArguments.Count == 0) throw new InvalidOperationException("A bundled release requires a post-install setup contract.");
+                await ValidateBundleAsync(expected, tenant, requiredRids, hostVersion, frameworkVersion, cancellationToken);
             }
             release.Bundle = bundle; release.PostInstallArguments.Clear(); release.PostInstallArguments.AddRange(postInstallArguments);
             catalog.Channels[promoteChannel] = version;
@@ -139,6 +140,30 @@ public sealed class FileRegistryStore(RegistryOptions options)
             await WriteJsonAtomicAsync(ReleaseCatalogPath(tenant, product), catalog, DistributionJsonContext.Default.ReleaseCatalog, cancellationToken);
         }
         finally { gate.Release(); }
+    }
+
+    private async ValueTask ValidateBundleAsync(string path, string tenant, IReadOnlyCollection<string> requiredRids,
+        Version hostVersion, Version frameworkVersion, CancellationToken cancellationToken)
+    {
+        await using var input = File.OpenRead(path);
+        var bundle = await JsonSerializer.DeserializeAsync(input, ModuleJsonContext.Default.ModuleBundle, cancellationToken)
+            ?? throw new InvalidOperationException("Bundle manifest is empty.");
+        if (!ModuleCompatibility.IsCompatible(bundle.HostCompatibility, hostVersion) || !ModuleCompatibility.IsCompatible(bundle.FrameworkCompatibility, frameworkVersion))
+            throw new InvalidOperationException("Bundle is incompatible with the declared host or framework version.");
+        var catalog = await GetModuleCatalogAsync(tenant, cancellationToken) ?? throw new InvalidOperationException("Owned module catalog does not exist.");
+        foreach (var member in bundle.Modules ?? [])
+        {
+            if (!member.Required) continue;
+            foreach (var rid in requiredRids)
+                if (!ModuleCompatibility.IsCompatible(member, rid, out var reason)) throw new InvalidOperationException($"Required module '{member.Id}' is ineligible for {rid}: {reason}");
+            ModuleRelease selected;
+            try { selected = ModuleCatalogClient.SelectRelease(catalog, member.Id, string.IsNullOrWhiteSpace(member.Channel) ? "stable" : member.Channel, member.Version); }
+            catch (Exception exception) { throw new InvalidOperationException($"Required module '{member.Id}' is not present in the owned catalog.", exception); }
+            if (selected.Revoked) throw new InvalidOperationException($"Required module '{member.Id}' is revoked.");
+            var expected = member.Sha256.Replace("sha256:", string.Empty, StringComparison.OrdinalIgnoreCase).Replace("-", string.Empty);
+            var actual = selected.Sha256.Replace("sha256:", string.Empty, StringComparison.OrdinalIgnoreCase).Replace("-", string.Empty);
+            if (!expected.Equals(actual, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException($"Required module '{member.Id}' digest does not match its catalog release.");
+        }
     }
 
     public async ValueTask PromoteAsync(string tenant, string product, string channel, string version,

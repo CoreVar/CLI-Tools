@@ -13,6 +13,8 @@ public sealed class ReleaseRecipe
     public required string Version { get; init; }
     public string UploadChannel { get; init; } = "candidate";
     public string PromoteChannel { get; init; } = "stable";
+    public required string HostVersion { get; init; }
+    public required string FrameworkVersion { get; init; }
     public Dictionary<string, string> Artifacts { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public string? BundleManifest { get; set; }
     public string? BundleSnapshot { get; init; }
@@ -27,6 +29,8 @@ public sealed class CompleteReleaseRequest
     public ReleaseBundleBootstrap? Bundle { get; init; }
     public List<string> PostInstallArguments { get; init; } = [];
     public required string PromoteChannel { get; init; }
+    public required string HostVersion { get; init; }
+    public required string FrameworkVersion { get; init; }
 }
 
 public sealed class ReleaseRecipePublisher(RegistryPublisher? publisher = null)
@@ -53,7 +57,8 @@ public sealed class ReleaseRecipePublisher(RegistryPublisher? publisher = null)
         }
         await _publisher.CompleteReleaseAsync(recipe.Endpoint, recipe.Tenant, recipe.Product, recipe.Version,
             new CompleteReleaseRequest { RequiredRuntimeIdentifiers = [.. recipe.Artifacts.Keys], Bundle = bundle,
-                PostInstallArguments = recipe.PostInstallArguments, PromoteChannel = recipe.PromoteChannel }, token, cancellationToken);
+                PostInstallArguments = recipe.PostInstallArguments, PromoteChannel = recipe.PromoteChannel,
+                HostVersion = recipe.HostVersion, FrameworkVersion = recipe.FrameworkVersion }, token, cancellationToken);
 
         Directory.CreateDirectory(recipe.InstallerOutput);
         var catalog = new Uri(new Uri(recipe.Endpoint.AbsoluteUri.TrimEnd('/') + "/"),

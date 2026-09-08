@@ -97,6 +97,8 @@ The same catalog API is supported by static JSON plus blobs; the containerized r
   "version": "1.2.0",
   "uploadChannel": "candidate",
   "promoteChannel": "stable",
+  "hostVersion": "1.2.0",
+  "frameworkVersion": "10.1.0",
   "artifacts": {
     "win-x64": "dist/sample-cli-win-x64.zip",
     "linux-x64": "dist/sample-cli-linux-x64.zip",
