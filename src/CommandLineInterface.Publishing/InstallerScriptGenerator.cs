@@ -76,7 +76,11 @@ public static class InstallerScriptGenerator
         )"
         TMP="${TMPDIR:-/tmp}/{{product}}-$VERSION.zip"
         curl -fsSL "$URI" -o "$TMP"
-        ACTUAL="$(sha256sum "$TMP" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$TMP" | cut -d' ' -f1)"
+        if command -v sha256sum >/dev/null 2>&1; then
+          ACTUAL="$(sha256sum "$TMP" | cut -d' ' -f1)"
+        else
+          ACTUAL="$(shasum -a 256 "$TMP" | cut -d' ' -f1)"
+        fi
         [ "$ACTUAL" = "$SHA" ] || { echo 'SHA-256 verification failed' >&2; exit 65; }
         mkdir -p "$INSTALL_DIR/versions/$VERSION"
         unzip -q -o "$TMP" -d "$INSTALL_DIR/versions/$VERSION"
@@ -91,7 +95,11 @@ public static class InstallerScriptGenerator
         if [ -n "$BUNDLE_URI" ]; then
           BUNDLE_PATH="$INSTALL_DIR/versions/$VERSION/.corevar/module-bundle.json"
           curl -fsSL "$BUNDLE_URI" -o "$BUNDLE_PATH"
-          BUNDLE_ACTUAL="$(sha256sum "$BUNDLE_PATH" 2>/dev/null | cut -d' ' -f1 || shasum -a 256 "$BUNDLE_PATH" | cut -d' ' -f1)"
+          if command -v sha256sum >/dev/null 2>&1; then
+            BUNDLE_ACTUAL="$(sha256sum "$BUNDLE_PATH" | cut -d' ' -f1)"
+          else
+            BUNDLE_ACTUAL="$(shasum -a 256 "$BUNDLE_PATH" | cut -d' ' -f1)"
+          fi
           [ "$BUNDLE_ACTUAL" = "$BUNDLE_SHA" ] || { echo 'Module bundle SHA-256 verification failed' >&2; exit 65; }
           export COREVAR_MODULE_BUNDLE="$BUNDLE_PATH" COREVAR_MODULE_BUNDLE_SHA256="$BUNDLE_SHA" COREVAR_MODULE_BUNDLE_SNAPSHOT="$BUNDLE_SNAPSHOT"
           [ -z "$BUNDLE_ROOT" ] || export COREVAR_CLI_HOME="$BUNDLE_ROOT"
