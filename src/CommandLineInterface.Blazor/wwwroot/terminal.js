@@ -48,8 +48,19 @@ export function initializeTerminal(root, input, dotnet, autoFocus) {
   input.addEventListener('copy', onCopy);
   const observer = new MutationObserver(() => requestAnimationFrame(scrollToBottom));
   observer.observe(root, { childList: true, subtree: true, characterData: true });
-  const resizeObserver = new ResizeObserver(scrollToBottom);
+  const reportSize = () => {
+    const style = getComputedStyle(root);
+    const probe = document.createElement('span');
+    probe.textContent = 'M'; probe.style.cssText = 'position:absolute;visibility:hidden;font:inherit';
+    root.appendChild(probe);
+    const cell = probe.getBoundingClientRect(); probe.remove();
+    const columns = Math.max(1, Math.floor(root.clientWidth / Math.max(1, cell.width)));
+    const rows = Math.max(1, Math.floor(root.clientHeight / Math.max(1, cell.height)));
+    dotnet.invokeMethodAsync('HandleTerminalResize', columns, rows);
+  };
+  const resizeObserver = new ResizeObserver(() => { scrollToBottom(); reportSize(); });
   resizeObserver.observe(root);
+  reportSize();
   if (autoFocus) requestAnimationFrame(() => { focus(); scrollToBottom(); });
   return { dispose() {
     observer.disconnect(); resizeObserver.disconnect();
@@ -58,6 +69,15 @@ export function initializeTerminal(root, input, dotnet, autoFocus) {
     input.removeEventListener('keydown', onKeyDown);
     input.removeEventListener('copy', onCopy);
   }};
+}
+
+export function loadHistory(key) {
+  try { const value = JSON.parse(localStorage.getItem(`corevar.cli.history.${key}`) || '[]'); return Array.isArray(value) ? value : []; }
+  catch { return []; }
+}
+
+export function saveHistory(key, values) {
+  localStorage.setItem(`corevar.cli.history.${key}`, JSON.stringify(values));
 }
 
 export function focusTerminal(input) {

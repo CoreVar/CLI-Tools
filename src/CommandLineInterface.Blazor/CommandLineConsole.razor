@@ -36,11 +36,27 @@
             }
         </span>
         <label class="terminal-sr-only" for="@_inputId">Command input</label>
-        <input @ref="_input" id="@_inputId" class="terminal-input" type="text"
+        <input @ref="_input" id="@_inputId" class="terminal-input"
+               type="@(_consoleControl?.IsInputSecret == true ? "password" : "text")"
                value="@_text" @oninput="OnInput" size="@Math.Max(1, _text.Length + 1)"
                autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
                aria-label="Command input" disabled="@(_consoleControl is null)" />
     </div>
+    @if (_completionItems.Count > 0)
+    {
+        <div class="terminal-completions" role="listbox" aria-label="Command completions">
+            @foreach (var item in _completionItems)
+            {
+                <button type="button" role="option" @onclick="() => AcceptCompletion(item.Value)">
+                    <span class="completion-value">@item.Value</span>
+                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                    {
+                        <span class="completion-description">@item.Description</span>
+                    }
+                </button>
+            }
+        </div>
+    }
 </div>
 
 @code {
@@ -56,12 +72,14 @@
     private IJSObjectReference? _terminalHandle;
     private DotNetObjectReference<CommandLineConsole>? _selfReference;
     private bool _rendered;
+    private IReadOnlyList<TerminalCompletion> _completionItems = [];
 
     [Parameter] public CliApp? CliApp { get; set; }
     [Parameter] public bool AutoFocus { get; set; } = true;
     [Parameter] public int HistoryLimit { get; set; } = 100;
     [Parameter] public int MaxLines { get; set; } = 2_000;
     [Parameter] public string AriaLabel { get; set; } = "Command line terminal";
+    [Parameter] public string? HistoryKey { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -86,6 +104,12 @@
             _module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/CoreVar.CommandLineInterface.Blazor/terminal.js");
             _selfReference = DotNetObjectReference.Create(this);
             _terminalHandle = await _module.InvokeAsync<IJSObjectReference>("initializeTerminal", _terminal, _input, _selfReference, AutoFocus);
+            if (!string.IsNullOrWhiteSpace(HistoryKey))
+            {
+                var saved = await _module.InvokeAsync<string[]>("loadHistory", HistoryKey);
+                _history.AddRange(saved.TakeLast(Math.Max(1, HistoryLimit)));
+                _historyIndex = _history.Count;
+            }
         }
     }
 
@@ -111,21 +135,28 @@
             case "u" when ctrlKey:
             case "Escape":
                 _text = string.Empty;
+                _completionItems = [];
                 break;
         }
         await InvokeAsync(StateHasChanged);
     }
 
+    [JSInvokable]
+    public void HandleTerminalResize(int columns, int rows) => _consoleControl?.Resize(columns, rows);
+
     private void Submit()
     {
         var command = _text;
-        if (!string.IsNullOrWhiteSpace(command) && (_history.Count == 0 || _history[^1] != command))
+        if (_consoleControl?.IsInputSecret != true && !string.IsNullOrWhiteSpace(command) && (_history.Count == 0 || _history[^1] != command))
         {
             _history.Add(command);
             if (_history.Count > Math.Max(1, HistoryLimit)) _history.RemoveAt(0);
+            if (_module is not null && !string.IsNullOrWhiteSpace(HistoryKey))
+                _ = _module.InvokeVoidAsync("saveHistory", HistoryKey, _history);
         }
         _historyIndex = _history.Count;
         _text = string.Empty;
+        _completionItems = [];
         _consoleControl!.SubmitLine(command);
     }
 
@@ -138,21 +169,22 @@
 
     private void Complete()
     {
-        var candidates = GetCompletions(_text).Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+        var candidates = GetCompletions(_text).GroupBy(item => item.Value, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First()).OrderBy(item => item.Value, StringComparer.OrdinalIgnoreCase).ToArray();
         if (candidates.Length == 0) return;
         var tokenStart = _text.Length == 0 || char.IsWhiteSpace(_text[^1]) ? _text.Length : _text.LastIndexOfAny([' ', '\t']) + 1;
         var current = _text[tokenStart..];
-        var prefix = CommonPrefix(candidates);
+        var prefix = CommonPrefix(candidates.Select(item => item.Value).ToArray());
         if (candidates.Length == 1 || prefix.Length > current.Length)
         {
-            _text = _text[..tokenStart] + (candidates.Length == 1 ? candidates[0] + " " : prefix);
+            _text = _text[..tokenStart] + (candidates.Length == 1 ? candidates[0].Value + " " : prefix);
+            _completionItems = [];
             return;
         }
-        _consoleControl!.ShowCompletions(_text, candidates);
+        _completionItems = candidates;
     }
 
-    private IEnumerable<string> GetCompletions(string input)
+    private IEnumerable<TerminalCompletion> GetCompletions(string input)
     {
         if (_cliApp is null) return [];
         string[] tokens;
@@ -166,12 +198,23 @@
             if (element.Children.TryGetValue(token, out var child)) element = child;
 
         if (completed.LastOrDefault() is { } previous && TryGetOption(element, previous, out var option) && option.Completions.Count > 0)
-            return option.Completions.Where(value => value.StartsWith(current, StringComparison.OrdinalIgnoreCase));
+            return option.Completions.Where(value => value.StartsWith(current, StringComparison.OrdinalIgnoreCase))
+                .Select(value => new TerminalCompletion(value, option.Description));
 
-        IEnumerable<string> values = current.StartsWith('-')
-            ? (element.Options?.Keys.AsEnumerable() ?? []).Concat(element.OptionAliases?.Keys.AsEnumerable() ?? []).Append("--help")
-            : element.Children.Values.Where(child => !child.IsHidden).Select(child => child.Name);
-        return values.Where(value => value.StartsWith(current, StringComparison.OrdinalIgnoreCase));
+        IEnumerable<TerminalCompletion> values = current.StartsWith('-')
+            ? (element.Options?.Values.Select(option => new TerminalCompletion(option.Name, option.Description)) ?? [])
+                .Concat(element.OptionAliases?.Select(alias => new TerminalCompletion(alias.Key, $"Alias for {alias.Value}")) ?? [])
+                .Append(new TerminalCompletion("--help", "Show command help"))
+            : element.Children.Values.Where(child => !child.IsHidden)
+                .Select(child => new TerminalCompletion(child.Name, child.Description));
+        return values.Where(item => item.Value.StartsWith(current, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void AcceptCompletion(string value)
+    {
+        var tokenStart = _text.Length == 0 || char.IsWhiteSpace(_text[^1]) ? _text.Length : _text.LastIndexOfAny([' ', '\t']) + 1;
+        _text = _text[..tokenStart] + value + " ";
+        _completionItems = [];
     }
 
     private static bool TryGetOption(CommandTreeElement element, string name, out CommandTreeOption option)
@@ -218,4 +261,6 @@
         if (_module is not null) await _module.DisposeAsync();
         _selfReference?.Dispose();
     }
+
+    private sealed record TerminalCompletion(string Value, string? Description);
 }

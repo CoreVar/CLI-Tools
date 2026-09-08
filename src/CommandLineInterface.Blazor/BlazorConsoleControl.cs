@@ -9,7 +9,7 @@ using CoreVar.CommandLineInterface.Services;
 
 namespace CoreVar.CommandLineInterface;
 
-public class BlazorConsoleControl : IConsoleControl, IConsoleInterruptSource
+public class BlazorConsoleControl : IConsoleControl, IConsoleInterruptSource, IBrowserTerminal
 {
     private TaskCompletionSource<string> _readLineTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private CancellationTokenSource _interruptSource = new();
@@ -17,8 +17,10 @@ public class BlazorConsoleControl : IConsoleControl, IConsoleInterruptSource
     private static readonly Regex AnsiPattern = new("\\x1B\\[(?<codes>[0-9;]*)m", RegexOptions.CultureInvariant);
     private Color _foreground = Color.LightGray;
     private bool _isBold;
+    private bool _isInputSecret;
 
     public event EventHandler? LinesChanged;
+    public event EventHandler<TerminalSize>? SizeChanged;
 
     public static ulong NewKey()
         => Interlocked.Increment(ref _key);
@@ -28,10 +30,24 @@ public class BlazorConsoleControl : IConsoleControl, IConsoleInterruptSource
     public int MaxLines { get; set; } = 2_000;
 
     public CancellationToken InterruptToken => _interruptSource.Token;
+    public TerminalSize Size { get; private set; } = new(80, 24);
+    public bool IsInputSecret
+    {
+        get => _isInputSecret;
+        set { if (_isInputSecret == value) return; _isInputSecret = value; NotifyChanged(); }
+    }
+
+    public void Resize(int columns, int rows)
+    {
+        var size = new TerminalSize(Math.Max(1, columns), Math.Max(1, rows));
+        if (size == Size) return;
+        Size = size;
+        SizeChanged?.Invoke(this, size);
+    }
 
     public void SubmitLine(string text)
     {
-        ParseAndWrite(text);
+        if (!IsInputSecret) ParseAndWrite(text);
         NewLine();
 
         var completionSource = _readLineTaskCompletionSource;

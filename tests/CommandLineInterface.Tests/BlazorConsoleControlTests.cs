@@ -56,4 +56,45 @@ public class BlazorConsoleControlTests
         Assert.Equal("7", console.Lines[1].Elements.Single().Text);
         Assert.Empty(console.Lines[2].Elements);
     }
+
+    [Fact]
+    public void ResizePublishesOnlyChangedClampedDimensions()
+    {
+        var console = new BlazorConsoleControl();
+        var changes = new List<TerminalSize>();
+        console.SizeChanged += (_, size) => changes.Add(size);
+
+        console.Resize(120, 40);
+        console.Resize(120, 40);
+        console.Resize(0, -1);
+
+        Assert.Equal(new TerminalSize(1, 1), console.Size);
+        Assert.Equal([new TerminalSize(120, 40), new TerminalSize(1, 1)], changes);
+    }
+
+    [Fact]
+    public async Task SecretInputIsReturnedWithoutBeingEchoed()
+    {
+        var console = new BlazorConsoleControl { IsInputSecret = true };
+        var read = console.ReadLine().AsTask();
+
+        console.SubmitLine("super-secret");
+
+        Assert.Equal("super-secret", await read);
+        Assert.DoesNotContain(console.Lines.SelectMany(line => line.Elements), element => element.Text.Contains("super-secret"));
+    }
+
+    [Fact]
+    public async Task ReadSecretRestoresInputMode()
+    {
+        var console = new BlazorConsoleControl();
+        var read = console.ReadSecretAsync("Password: ").AsTask();
+        Assert.True(console.IsInputSecret);
+
+        console.SubmitLine("secret");
+
+        Assert.Equal("secret", await read);
+        Assert.False(console.IsInputSecret);
+        Assert.Equal("Password: ", console.Lines[0].Elements.Single().Text);
+    }
 }
