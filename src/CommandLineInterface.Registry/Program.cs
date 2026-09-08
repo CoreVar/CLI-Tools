@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using CoreVar.CommandLineInterface.Registry;
 using CoreVar.CommandLineInterface.Publishing;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 var options = new RegistryOptions();
@@ -10,6 +11,18 @@ builder.Services.AddSingleton<FileRegistryStore>();
 builder.Services.AddHealthChecks();
 var app = builder.Build();
 
+if (options.TrustForwardedHeaders)
+{
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto
+    };
+    forwardedHeaders.KnownIPNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+}
+if (!string.IsNullOrEmpty(options.PathBase)) app.UsePathBase(options.PathBase);
+
 app.MapHealthChecks("/healthz");
 app.MapGet("/v1/{tenant}/products/{product}/catalog.json", async (string tenant, string product, FileRegistryStore store, CancellationToken token) =>
     await store.GetReleaseCatalogAsync(tenant, product, token) is { } catalog ? Results.Json(catalog) : Results.NotFound());
@@ -17,17 +30,17 @@ app.MapGet("/v1/{tenant}/modules/catalog.json", async (string tenant, FileRegist
     await store.GetModuleCatalogAsync(tenant, token) is { } catalog ? Results.Json(catalog) : Results.NotFound());
 app.MapGet("/v1/{tenant}/products/{product}/install.ps1", (HttpRequest request, string tenant, string product, string? channel) =>
     Results.Text(InstallerScriptGenerator.PowerShell(product,
-        PublicUri(request, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/plain"));
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/plain"));
 app.MapGet("/v1/{tenant}/products/{product}/install.sh", (HttpRequest request, string tenant, string product, string? channel) =>
     Results.Text(InstallerScriptGenerator.Shell(product,
-        PublicUri(request, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/x-shellscript"));
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/x-shellscript"));
 
 app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/{rid}", async (HttpRequest request, string tenant, string product,
     string version, string rid, string? channel, FileRegistryStore store, CancellationToken token) =>
 {
     var unauthorized = AuthorizePublish(request, tenant, options); if (unauthorized is not null) return unauthorized;
     channel ??= "stable";
-    var uri = PublicUri(request, $"/v1/{tenant}/blobs/products/{product}/{version}/{rid}.zip");
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/{version}/{rid}.zip");
     return Results.Json(await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token));
 });
 
@@ -36,7 +49,7 @@ app.MapPut("/v1/{tenant}/modules/{id}/releases/{version}", async (HttpRequest re
 {
     var unauthorized = AuthorizePublish(request, tenant, options); if (unauthorized is not null) return unauthorized;
     channel ??= "stable";
-    var uri = PublicUri(request, $"/v1/{tenant}/blobs/modules/{id}/{version}/module.zip");
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/modules/{id}/{version}/module.zip");
     return Results.Json(await store.PublishModuleAsync(tenant, id, version, channel, description ?? string.Empty, request.Body, uri, token));
 });
 
@@ -74,6 +87,10 @@ static IResult? AuthorizePublish(HttpRequest request, string tenant, RegistryOpt
     return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(supplied), Encoding.UTF8.GetBytes(expected)) ? null : Results.Unauthorized();
 }
 
-static Uri PublicUri(HttpRequest request, string path) => new($"{request.Scheme}://{request.Host}{request.PathBase}{path}");
+static Uri PublicUri(HttpRequest request, RegistryOptions options, string path)
+{
+    if (options.PublicBaseUri is not null) return new Uri(options.PublicBaseUri, path.TrimStart('/'));
+    return new Uri($"{request.Scheme}://{request.Host}{request.PathBase}{path}");
+}
 
 public partial class Program;

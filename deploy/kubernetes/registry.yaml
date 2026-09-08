@@ -26,6 +26,12 @@ spec:
           ports: [{ containerPort: 8080 }]
           env:
             - { name: COREVAR_REGISTRY_DATA, value: /data }
+            # Use these when an ingress/application gateway exposes the registry
+            # below a URL prefix such as https://example.com/cli-registry.
+            # - { name: COREVAR_REGISTRY_PATH_BASE, value: /cli-registry }
+            # - { name: COREVAR_REGISTRY_PUBLIC_BASE_URL, value: https://example.com/cli-registry/ }
+            # Enable only when the pod is reachable exclusively through trusted proxies.
+            # - { name: COREVAR_REGISTRY_TRUST_FORWARDED_HEADERS, value: "true" }
             - name: COREVAR_REGISTRY_API_KEYS
               valueFrom: { secretKeyRef: { name: corevar-cli-registry, key: api-keys } }
           readinessProbe: { httpGet: { path: /healthz, port: 8080 } }
