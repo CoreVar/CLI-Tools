@@ -117,6 +117,13 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
             if (string.IsNullOrEmpty(entry.Name)) { Directory.CreateDirectory(target); continue; }
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             entry.ExtractToFile(target, true);
+            if (!OperatingSystem.IsWindows())
+            {
+                // ZIP stores Unix mode bits in the high 16 bits. Preserve only ordinary rwx bits;
+                // deliberately exclude setuid, setgid, and sticky bits from untrusted packages.
+                var permissions = (entry.ExternalAttributes >> 16) & 0x1FF;
+                if (permissions != 0) File.SetUnixFileMode(target, (UnixFileMode)permissions);
+            }
         }
     }
 

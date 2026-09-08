@@ -80,6 +80,8 @@ public static class InstallerScriptGenerator
         [ "$ACTUAL" = "$SHA" ] || { echo 'SHA-256 verification failed' >&2; exit 65; }
         mkdir -p "$INSTALL_DIR/versions/$VERSION"
         unzip -q -o "$TMP" -d "$INSTALL_DIR/versions/$VERSION"
+        HOST_ENTRYPOINT="$INSTALL_DIR/versions/$VERSION/{{product}}"
+        [ ! -f "$HOST_ENTRYPOINT" ] || chmod 0755 "$HOST_ENTRYPOINT"
         LAUNCHER="$INSTALL_DIR/versions/$VERSION/.corevar/launcher"
         [ -f "$LAUNCHER" ] || { echo 'Artifact is missing the CoreVar stable launcher; package with cli-tools package --launcher' >&2; exit 65; }
         mkdir -p "$INSTALL_DIR/bin" "$HOME/.local/bin"

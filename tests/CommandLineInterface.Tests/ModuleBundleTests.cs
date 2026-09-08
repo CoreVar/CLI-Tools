@@ -95,6 +95,8 @@ public sealed class ModuleBundleTests : IDisposable
         Assert.Contains("postInstallArguments", powerShell);
         Assert.True(powerShell.IndexOf("Post-install bootstrap failed", StringComparison.Ordinal) < powerShell.IndexOf("Installed sample", StringComparison.Ordinal));
         Assert.Contains("module-bundle.json", shell);
+        Assert.Contains("HOST_ENTRYPOINT", shell);
+        Assert.Contains("chmod 0755 \"$HOST_ENTRYPOINT\"", shell);
         Assert.Contains("postInstallArguments", shell);
         Assert.True(shell.IndexOf("subprocess.call", StringComparison.Ordinal) < shell.IndexOf("Installed sample", StringComparison.Ordinal));
     }

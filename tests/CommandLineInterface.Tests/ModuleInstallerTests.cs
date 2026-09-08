@@ -19,6 +19,8 @@ public sealed class ModuleInstallerTests : IDisposable
         var second = await CreatePackageAsync("sample", "1.1.0");
 
         await installer.InstallAsync("sample", first);
+        if (!OperatingSystem.IsWindows())
+            Assert.True((File.GetUnixFileMode(Path.Combine(paths.Version("sample", "1.0.0"), "module")) & UnixFileMode.UserExecute) != 0);
         await installer.InstallAsync("sample", second);
 
         Assert.Equal("1.1.0", (await store.GetCurrentAsync("sample"))!.Version);
@@ -88,7 +90,8 @@ public sealed class ModuleInstallerTests : IDisposable
             var entry = archive.CreateEntry("corevar.module.json");
             await using (var stream = entry.Open())
                 await JsonSerializer.SerializeAsync(stream, manifest);
-            archive.CreateEntry(OperatingSystem.IsWindows() ? "module.cmd" : "module");
+            var executable = archive.CreateEntry(OperatingSystem.IsWindows() ? "module.cmd" : "module");
+            if (!OperatingSystem.IsWindows()) executable.ExternalAttributes = 0x81ED << 16;
         }
         await using var packageStream = File.OpenRead(package);
         var digest = Convert.ToHexString(await SHA256.HashDataAsync(packageStream));
