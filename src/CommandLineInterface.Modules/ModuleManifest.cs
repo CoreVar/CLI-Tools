@@ -52,6 +52,19 @@ public sealed class ModuleCommand
     public List<ModuleCommand> Commands { get; init; } = [];
     public List<ModuleOption> Options { get; init; } = [];
     public List<ModuleArgument> Arguments { get; init; } = [];
+    /// <summary>Describes the machine-readable result produced when structured output is requested.</summary>
+    public ModuleCommandOutput? Output { get; init; }
+}
+
+/// <summary>Declares a command's optional structured-output contract.</summary>
+public sealed class ModuleCommandOutput
+{
+    /// <summary>Media type written to standard output, such as application/json.</summary>
+    public string MediaType { get; init; } = "application/json";
+    /// <summary>Optional schema identifier understood by callers.</summary>
+    public string? Schema { get; init; }
+    /// <summary>Argument passed to request structured output from the module.</summary>
+    public string Argument { get; init; } = "--output=json";
 }
 
 public sealed class ModuleOption

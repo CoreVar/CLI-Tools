@@ -104,8 +104,8 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         }
         else
         {
-            var context = CommandTreeBuilder.BuildAndLoad(this, args);
-            commandTree = context.Tree;
+            commandTree = CommandTreeBuilder.Build(this);
+            var context = CommandTreeBuilder.Load(commandTree, args);
             hostBuilder.Services
                 .AddSingleton(context);
         }

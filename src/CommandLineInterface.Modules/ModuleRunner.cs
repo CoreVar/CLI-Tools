@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using CoreVar.CommandLineInterface.Support;
 
 namespace CoreVar.CommandLineInterface.Modules;
 
@@ -6,6 +7,10 @@ public sealed class ModuleRunner
 {
     public ValueTask<int> RunAsync(ModuleManifest manifest, IReadOnlyList<string> arguments,
         CancellationToken cancellationToken = default)
+        => RunAsync(manifest, arguments, new ModuleInvocationContext(EmptyServiceProvider.Instance, new NativeConsoleControl()), cancellationToken);
+
+    public async ValueTask<int> RunAsync(ModuleManifest manifest, IReadOnlyList<string> arguments,
+        ModuleInvocationContext invocation, CancellationToken cancellationToken = default)
     {
         var entrypoint = SelectEntrypoint(manifest);
         var executable = ResolveExecutable(manifest, entrypoint);
@@ -13,14 +18,17 @@ public sealed class ModuleRunner
         if (!string.IsNullOrWhiteSpace(entrypoint.Interpreter) || manifest.Runtime.Kind is ModuleRuntimeKind.Python or ModuleRuntimeKind.Node or ModuleRuntimeKind.DotNet)
             allArguments = allArguments.Prepend(ModuleRuntimeProvisioner.SafeChild(manifest.InstallDirectory, entrypoint.Path));
         allArguments = allArguments.Concat(arguments);
-        var environment = new Dictionary<string, string?>
+        var environment = new Dictionary<string, string?>(invocation.Environment, StringComparer.Ordinal)
         {
             ["COREVAR_MODULE_PROTOCOL"] = ModuleManifest.ProcessProtocol,
             ["COREVAR_MODULE_ID"] = manifest.Id,
             ["COREVAR_MODULE_VERSION"] = manifest.Version,
             ["COREVAR_CLI_VERSION"] = typeof(ModuleRunner).Assembly.GetName().Version?.ToString()
         };
-        return ProcessRunner.RunAsync(executable, allArguments, manifest.InstallDirectory, environment, cancellationToken);
+        if (invocation.CredentialProvider is not null)
+            foreach (var item in await invocation.CredentialProvider.GetEnvironmentAsync(manifest, arguments, cancellationToken))
+                environment[item.Key] = item.Value;
+        return await ProcessRunner.RunAsync(executable, allArguments, manifest.InstallDirectory, environment, invocation, cancellationToken);
     }
 
     private static ModuleEntrypoint SelectEntrypoint(ModuleManifest manifest)
@@ -52,4 +60,10 @@ public sealed class ModuleRunner
 
     private static string ResolveNode(ModuleManifest manifest) =>
         ModuleRuntimeProvisioner.ResolveRuntimeExecutable(manifest, OperatingSystem.IsWindows() ? "node.exe" : "node", "node");
+
+    private sealed class EmptyServiceProvider : IServiceProvider
+    {
+        public static readonly EmptyServiceProvider Instance = new();
+        public object? GetService(Type serviceType) => null;
+    }
 }

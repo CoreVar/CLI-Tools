@@ -6,6 +6,11 @@ public static class ExternalModuleExtensions
 {
     /// <summary>Projects all locally installed external modules into the command tree.</summary>
     public static ICommandLineBuilder ExternalModules(this ICommandLineBuilder builder, string? root = null)
+        => builder.ExternalModules(context => new ModuleInvocationContext(context.Services, context.Console), root);
+
+    /// <summary>Projects installed modules using an isolated context resolved for every invocation.</summary>
+    public static ICommandLineBuilder ExternalModules(this ICommandLineBuilder builder,
+        Func<CommandExecutionContext, ModuleInvocationContext> invocationFactory, string? root = null)
     {
         var paths = new ModulePaths(root);
         var store = new ModuleStore(paths);
@@ -14,7 +19,7 @@ public static class ExternalModuleExtensions
         {
             var manifest = store.GetCurrentAsync(id).AsTask().GetAwaiter().GetResult();
             if (manifest is null) continue;
-            foreach (var command in manifest.Commands) Project(builder, command, manifest, runner);
+            foreach (var command in manifest.Commands) Project(builder, command, manifest, runner, invocationFactory);
         }
         return builder;
     }
@@ -73,7 +78,8 @@ public static class ExternalModuleExtensions
             }));
     }
 
-    private static void Project(IParentBuilder parent, ModuleCommand definition, ModuleManifest manifest, ModuleRunner runner)
+    private static void Project(IParentBuilder parent, ModuleCommand definition, ModuleManifest manifest, ModuleRunner runner,
+        Func<CommandExecutionContext, ModuleInvocationContext> invocationFactory)
     {
         parent.Command(definition.Name, command =>
         {
@@ -104,9 +110,9 @@ public static class ExternalModuleExtensions
                 if (argument.Description is not null) projected.Description(argument.Description);
                 if (argument.Completions.Count > 0) projected.Complete([.. argument.Completions]);
             }
-            foreach (var child in definition.Commands) Project(command, child, manifest, runner);
+            foreach (var child in definition.Commands) Project(command, child, manifest, runner, invocationFactory);
             if (definition.Commands.Count == 0)
-                command.OnExecute(new Func<CommandExecutionContext, ValueTask<int>>(context => runner.RunAsync(manifest, context.Arguments, context.CancellationToken)));
+                command.OnExecute(new Func<CommandExecutionContext, ValueTask<int>>(context => runner.RunAsync(manifest, context.Arguments, invocationFactory(context), context.CancellationToken)));
         });
     }
 }

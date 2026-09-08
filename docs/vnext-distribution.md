@@ -35,6 +35,10 @@ Python modules receive an isolated `.venv`. They can use a declared system Pytho
 Protocol `corevar.module.process/1` reserves these operations:
 
 - `--corevar-describe`: writes the module manifest as JSON.
+
+Each invocation receives its arguments unchanged and runs in an isolated child-process environment. Hosts can supply short-lived credentials through `IModuleCredentialProvider`; credentials are added only to that child process and are never appended to command arguments or written to process-global environment variables. `ModuleInvocationContext` routes stdin, stdout, stderr, cancellation, services, and output limits through the host's `IConsoleControl`, so the same module works in native terminals, Blazor terminals, and multi-user portals without exposing an arbitrary shell.
+
+A command can declare an `output` object (`mediaType`, optional `schema`, and the argument used to request it). This lets portals and automation discover structured results without hard-coding module behavior. Command and option descriptions are also emitted in PowerShell completion tooltips.
 - Normal invocation receives command arguments unchanged and inherits the terminal streams.
 - `COREVAR_MODULE_PROTOCOL`, `COREVAR_MODULE_ID`, `COREVAR_MODULE_VERSION`, and `COREVAR_CLI_VERSION` describe the host.
 - Exit codes and Ctrl+C flow through unchanged.
