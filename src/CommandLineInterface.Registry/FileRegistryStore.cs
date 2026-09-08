@@ -73,6 +73,26 @@ public sealed class FileRegistryStore(RegistryOptions options)
 
     public string GetBlobPath(string tenant, params string[] segments) => BlobPath(tenant, segments);
 
+    public async ValueTask SetReleaseMetadataAsync(string tenant, string product, string version,
+        ReleaseBundleBootstrap? bundle, IReadOnlyList<string>? postInstallArguments, CancellationToken cancellationToken)
+    {
+        Validate(tenant); Validate(product); Validate(version);
+        var gate = _locks.GetOrAdd($"release:{tenant}:{product}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken)
+                ?? throw new KeyNotFoundException("Product catalog not found.");
+            var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase))
+                ?? throw new KeyNotFoundException("Release not found.");
+            release.Bundle = bundle;
+            release.PostInstallArguments.Clear();
+            if (postInstallArguments is not null) release.PostInstallArguments.AddRange(postInstallArguments);
+            await WriteJsonAtomicAsync(ReleaseCatalogPath(tenant, product), catalog, DistributionJsonContext.Default.ReleaseCatalog, cancellationToken);
+        }
+        finally { gate.Release(); }
+    }
+
     public async ValueTask PromoteAsync(string tenant, string product, string channel, string version,
         int percentage, string? fallbackVersion, string seed, CancellationToken cancellationToken)
     {

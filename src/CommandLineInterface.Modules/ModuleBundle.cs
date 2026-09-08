@@ -22,6 +22,7 @@ public sealed class ModuleBundleMember
     public required string Id { get; init; }
     public required string Version { get; init; }
     public required string Sha256 { get; init; }
+    public string Channel { get; init; } = "stable";
     public bool Required { get; init; } = true;
     public Uri? Catalog { get; init; }
     public List<string> Platforms { get; init; } = [];
@@ -98,7 +99,7 @@ public sealed class ModuleBundleInstaller(HttpClient? client = null)
 
         var paths = new ModulePaths(context.Root);
         var store = new ModuleStore(paths);
-        var installer = new ModuleInstaller(paths, store, new ModuleRuntimeProvisioner(), _client, context.FrameworkVersion);
+        var installer = new ModuleInstaller(paths, store, new ModuleRuntimeProvisioner(), _client, context.HostVersion);
         var catalogs = new ModuleCatalogClient(_client);
         var result = new ModuleBundleInstallResult { BundleId = bundle.Id, Snapshot = bundle.Snapshot };
         var changed = new List<(string Id, ModuleInstallationPointer? Previous)>();
@@ -116,7 +117,7 @@ public sealed class ModuleBundleInstaller(HttpClient? client = null)
                 var catalogUri = Resolve(member.Catalog ?? bundle.Catalog
                     ?? throw new InvalidDataException($"Module '{member.Id}' has no catalog."), baseUri);
                 var catalog = await catalogs.LoadAsync(catalogUri, cancellationToken);
-                var release = ModuleCatalogClient.SelectRelease(catalog, member.Id, version: member.Version);
+                var release = ModuleCatalogClient.SelectRelease(catalog, member.Id, member.Channel, member.Version);
                 if (!ModuleBundleClient.Normalize(release.Sha256).Equals(ModuleBundleClient.Normalize(member.Sha256), StringComparison.OrdinalIgnoreCase))
                     throw new InvalidDataException($"Module '{member.Id}' catalog digest does not match the pinned bundle snapshot.");
                 var previous = await store.GetPointerAsync(member.Id, cancellationToken);

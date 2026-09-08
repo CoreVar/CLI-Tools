@@ -87,6 +87,15 @@ app.MapPut("/v1/{tenant}/modules/{id}/releases/{version}", async (HttpRequest re
     return Results.Json(result);
 });
 
+app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/metadata", async (HttpRequest request, string tenant,
+    string product, string version, CoreVar.CommandLineInterface.Distribution.ReleaseMetadataPayload metadata, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    await store.SetReleaseMetadataAsync(tenant, product, version, metadata.Bundle, metadata.PostInstallArguments, token);
+    Audit(app, request, tenant, "release.metadata", $"product:{product}", version);
+    return Results.NoContent();
+});
+
 app.MapPost("/v1/{tenant}/products/{product}/channels/{channel}", async (HttpRequest request, string tenant, string product,
     string channel, string version, int? percentage, string? fallbackVersion, string? seed, FileRegistryStore store, CancellationToken token) =>
 {

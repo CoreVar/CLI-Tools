@@ -7,4 +7,5 @@ namespace CoreVar.CommandLineInterface.Distribution;
 [JsonSerializable(typeof(ReleaseCatalog))]
 [JsonSerializable(typeof(InstallationState))]
 [JsonSerializable(typeof(ReleaseBundleBootstrap))]
+[JsonSerializable(typeof(ReleaseMetadataPayload))]
 public partial class DistributionJsonContext : JsonSerializerContext;

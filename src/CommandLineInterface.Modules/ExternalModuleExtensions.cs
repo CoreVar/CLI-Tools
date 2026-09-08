@@ -25,11 +25,11 @@ public static class ExternalModuleExtensions
     }
 
     /// <summary>Adds module install, update, list, rollback, and remove commands.</summary>
-    public static ICommandLineBuilder ModuleManagement(this ICommandLineBuilder builder, string? root = null)
+    public static ICommandLineBuilder ModuleManagement(this ICommandLineBuilder builder, string? root = null, Version? hostVersion = null)
     {
         var paths = new ModulePaths(root);
         var store = new ModuleStore(paths);
-        var installer = new ModuleInstaller(paths, store, new ModuleRuntimeProvisioner());
+        var installer = new ModuleInstaller(paths, store, new ModuleRuntimeProvisioner(), hostVersion: hostVersion);
         var manager = new ModuleManager(new ModuleCatalogClient(), installer, store);
         return builder.Command("module", module => module.Description("Installs and updates language-neutral CLI modules.")
             .Command("list", command => command.OnExecute(new Func<CommandExecutionContext, ValueTask>(async context =>

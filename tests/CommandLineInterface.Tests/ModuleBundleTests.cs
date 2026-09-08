@@ -97,7 +97,7 @@ public sealed class ModuleBundleTests : IDisposable
                 await using var stream = entry.Open();
                 await JsonSerializer.SerializeAsync(stream, new ModuleManifest
                 {
-                    Id = id, Version = version, CliCompatibility = "[10.0.0,11.0.0)",
+                    Id = id, Version = version, CliCompatibility = "[0.1.0,0.2.0)",
                     Entrypoints = { ["any"] = new ModuleEntrypoint { Path = "module" } },
                     Commands = [new ModuleCommand { Name = "sample" }]
                 }, ModuleJsonContext.Default.ModuleManifest);

@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using CoreVar.CommandLineInterface.Distribution;
 
 namespace CoreVar.CommandLineInterface.Publishing;
 
@@ -22,6 +24,25 @@ public sealed class RegistryPublisher(HttpClient? client = null)
     public ValueTask PromoteAsync(Uri endpoint, string tenant, string product, string channel, string version,
         int percentage = 100, string? fallbackVersion = null, string? token = null, CancellationToken cancellationToken = default) =>
         PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/channels/{Escape(channel)}?version={Escape(version)}&percentage={percentage}&fallbackVersion={Escape(fallbackVersion ?? string.Empty)}"), token, cancellationToken);
+
+    public async ValueTask SetReleaseMetadataAsync(Uri endpoint, string tenant, string product, string version,
+        ReleaseBundleBootstrap? bundle, IReadOnlyList<string>? postInstallArguments = null, string? token = null,
+        CancellationToken cancellationToken = default)
+    {
+        var uri = Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/releases/{Escape(version)}/metadata");
+        using var request = new HttpRequestMessage(HttpMethod.Put, uri)
+        {
+            Content = JsonContent.Create(new ReleaseMetadataPayload
+            {
+                Bundle = bundle,
+                PostInstallArguments = postInstallArguments?.ToList() ?? []
+            }, DistributionJsonContext.Default.ReleaseMetadataPayload)
+        };
+        if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await _client.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
+    }
 
     public ValueTask RevokeAsync(Uri endpoint, string tenant, string product, string? version, string? sha256,
         string reason, string? token = null, CancellationToken cancellationToken = default) =>
@@ -54,5 +75,6 @@ public sealed class RegistryPublisher(HttpClient? client = null)
     private static string Escape(string value) => Uri.EscapeDataString(value);
     private static Uri Resolve(Uri endpoint, string relative) => new(new Uri(endpoint.AbsoluteUri.TrimEnd('/') + "/"), relative);
 }
+
 
 public sealed record PublishResult(string? Uri, string? Sha256);
