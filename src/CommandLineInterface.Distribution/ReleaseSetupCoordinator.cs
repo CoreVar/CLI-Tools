@@ -8,9 +8,15 @@ public sealed class ReleaseSetupCoordinator(DirectUpdater updater)
         CancellationToken cancellationToken = default)
     {
         var updated = await updater.UpdateAsync(current, version, cancellationToken);
-        if (ReferenceEquals(updated, current) || await readiness(updated, cancellationToken)) return updated;
-        try { await updater.RollbackAsync(updated, cancellationToken); }
-        catch (Exception rollback) { throw new AggregateException("Updated release failed readiness and host rollback also failed.", rollback); }
-        throw new InvalidOperationException($"Release '{updated.Version}' failed readiness validation; previous host '{current.Version}' was restored.");
+        Exception? failure = null;
+        try { if (await readiness(updated, cancellationToken)) return updated; failure = new InvalidOperationException($"Release '{updated.Version}' failed readiness validation."); }
+        catch (Exception exception) { failure = exception; }
+        if (!ReferenceEquals(updated, current))
+        {
+            try { await updater.RollbackAsync(updated, CancellationToken.None); }
+            catch (Exception rollback) { throw new AggregateException("Release readiness failed and host rollback also failed.", failure!, rollback); }
+        }
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure!).Throw();
+        throw failure!;
     }
 }

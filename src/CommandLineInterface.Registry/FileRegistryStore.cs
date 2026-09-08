@@ -35,7 +35,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
         try
         {
             var blobPath = BlobPath(tenant, "products", product, version, rid + ".zip");
-            var (digest, size) = await WriteBlobAsync(blobPath, content, cancellationToken);
+            var (digest, size) = await WriteBlobAsync(blobPath, content, cancellationToken, immutable: true);
             var artifact = new ReleaseArtifact { RuntimeIdentifier = rid, Uri = publicUri, Sha256 = digest, Size = size };
             var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken) ?? new ReleaseCatalog { Product = product };
             var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
@@ -119,10 +119,23 @@ public sealed class FileRegistryStore(RegistryOptions options)
         {
             var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken) ?? throw new KeyNotFoundException("Product catalog not found.");
             var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase)) ?? throw new KeyNotFoundException("Release not found.");
+            if (catalog.Revocations.Any(revoked => revoked.Version?.Equals(version, StringComparison.OrdinalIgnoreCase) == true || release.Artifacts.Any(artifact => revoked.Sha256?.Equals(artifact.Sha256, StringComparison.OrdinalIgnoreCase) == true)))
+                throw new InvalidOperationException("A revoked release or artifact cannot be promoted.");
             var missing = requiredRids.Where(rid => !release.Artifacts.Any(item => item.RuntimeIdentifier.Equals(rid, StringComparison.OrdinalIgnoreCase))).ToArray();
             if (missing.Length > 0) throw new InvalidOperationException($"Release is missing required artifacts: {string.Join(", ", missing)}.");
+            if (bundle is not null)
+            {
+                var expected = PublicBundlePath(tenant, product, bundle);
+                if (!File.Exists(expected)) throw new InvalidOperationException("Bundle manifest is not owned by this registry or does not exist.");
+                using var stream = File.OpenRead(expected);
+                var digest = Convert.ToHexString(SHA256.HashData(stream));
+                var expectedDigest = bundle.Sha256.Replace("sha256:", string.Empty, StringComparison.OrdinalIgnoreCase).Replace("-", string.Empty);
+                if (!digest.Equals(expectedDigest, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Bundle digest does not match registry content.");
+                if (postInstallArguments.Count == 0) throw new InvalidOperationException("A bundled release requires a post-install setup contract.");
+            }
             release.Bundle = bundle; release.PostInstallArguments.Clear(); release.PostInstallArguments.AddRange(postInstallArguments);
             catalog.Channels[promoteChannel] = version;
+            catalog.Rollouts.RemoveAll(item => item.Channel.Equals(promoteChannel, StringComparison.OrdinalIgnoreCase));
             await WriteJsonAtomicAsync(ReleaseCatalogPath(tenant, product), catalog, DistributionJsonContext.Default.ReleaseCatalog, cancellationToken);
         }
         finally { gate.Release(); }
@@ -213,6 +226,12 @@ public sealed class FileRegistryStore(RegistryOptions options)
 
     private string ReleaseCatalogPath(string tenant, string product) => Path.Combine(Tenant(tenant), "products", Safe(product), "catalog.json");
     private string ModuleCatalogPath(string tenant) => Path.Combine(Tenant(tenant), "modules", "catalog.json");
+    private string PublicBundlePath(string tenant, string product, ReleaseBundleBootstrap bundle)
+    {
+        var name = bundle.Manifest.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        if (name != bundle.Snapshot + ".json") throw new InvalidOperationException("Bundle URL does not match its snapshot.");
+        return BlobPath(tenant, "products", product, "bundles", name);
+    }
     private string BlobPath(string tenant, params string[] segments) => Path.Combine([Tenant(tenant), "blobs", .. segments.Select(Safe)]);
     private string Tenant(string tenant) => Path.Combine(Path.GetFullPath(options.DataRoot), "tenants", Safe(tenant));
     private static void Validate(string value) => _ = Safe(value);

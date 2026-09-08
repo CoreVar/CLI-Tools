@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using CoreVar.CommandLineInterface.Registry;
 using CoreVar.CommandLineInterface.Publishing;
+using CoreVar.CommandLineInterface.Distribution;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,7 +72,9 @@ app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/{rid}", async (Ht
     var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
     channel ??= "stable";
     var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/{version}/{rid}.zip");
-    var result = await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token);
+    ReleaseArtifact result;
+    try { result = await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token); }
+    catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
     Audit(app, request, tenant, "release.publish", $"product:{product}", version);
     return Results.Json(result);
 });

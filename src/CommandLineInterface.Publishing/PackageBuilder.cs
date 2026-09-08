@@ -15,8 +15,9 @@ public static class PackageBuilder
         foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories).OrderBy(value => value, StringComparer.Ordinal))
         {
             var relative = Path.GetRelativePath(source, file).Replace('\\', '/');
-            if (relative.Split('/').Any(part => part is ".git" or "bin" or "obj" or "node_modules" or ".venv")) continue;
+            if (relative.Split('/').Any(part => part is ".git" or "obj" or "node_modules" or ".venv")) continue;
             var entry = archive.CreateEntry(relative, CompressionLevel.SmallestSize);
+            PreserveUnixPermissions(file, entry);
             entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
             using var input = File.OpenRead(file);
             using var target = entry.Open();
@@ -26,10 +27,16 @@ public static class PackageBuilder
         {
             var launcherName = Path.GetExtension(launcherPath).Equals(".exe", StringComparison.OrdinalIgnoreCase) ? "launcher.exe" : "launcher";
             var entry = archive.CreateEntry(".corevar/" + launcherName, CompressionLevel.SmallestSize);
+            if (!OperatingSystem.IsWindows()) entry.ExternalAttributes = 0x81ED << 16;
             entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
             using var input = File.OpenRead(launcherPath);
             using var target = entry.Open();
             input.CopyTo(target);
         }
+    }
+    private static void PreserveUnixPermissions(string file, ZipArchiveEntry entry)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        entry.ExternalAttributes = (0x8000 | ((int)File.GetUnixFileMode(file) & 0x1FF)) << 16;
     }
 }
