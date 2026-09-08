@@ -44,6 +44,22 @@ public sealed class RegistryPublisher(HttpClient? client = null)
             throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
     }
 
+    public async ValueTask<BundlePublishResult> PublishBundleAsync(Uri endpoint, string tenant, string product,
+        string snapshot, string manifest, string? token = null, CancellationToken cancellationToken = default)
+    {
+        var uri = Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/bundles/{Escape(snapshot)}");
+        await using var stream = File.OpenRead(manifest);
+        using var request = new HttpRequestMessage(HttpMethod.Put, uri) { Content = new StreamContent(stream) };
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {body}");
+        using var json = JsonDocument.Parse(body);
+        return new BundlePublishResult(new Uri(json.RootElement.GetProperty("manifest").GetString()!),
+            json.RootElement.GetProperty("sha256").GetString()!, json.RootElement.GetProperty("snapshot").GetString()!);
+    }
+
     public ValueTask RevokeAsync(Uri endpoint, string tenant, string product, string? version, string? sha256,
         string reason, string? token = null, CancellationToken cancellationToken = default) =>
         PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/revocations?version={Escape(version ?? string.Empty)}&sha256={Escape(sha256 ?? string.Empty)}&reason={Escape(reason)}"), token, cancellationToken);
@@ -78,3 +94,4 @@ public sealed class RegistryPublisher(HttpClient? client = null)
 
 
 public sealed record PublishResult(string? Uri, string? Sha256);
+public sealed record BundlePublishResult(Uri Manifest, string Sha256, string Snapshot);

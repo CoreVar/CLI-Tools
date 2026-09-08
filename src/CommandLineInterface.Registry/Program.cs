@@ -96,6 +96,20 @@ app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/metadata", async 
     return Results.NoContent();
 });
 
+app.MapPut("/v1/{tenant}/products/{product}/bundles/{snapshot}", async (HttpRequest request, string tenant,
+    string product, string snapshot, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/bundles/{snapshot}.json");
+    try
+    {
+        var result = await store.PublishBundleSnapshotAsync(tenant, product, snapshot, request.Body, uri, token);
+        Audit(app, request, tenant, "bundle.publish", $"product:{product}", snapshot);
+        return Results.Json(result);
+    }
+    catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
+});
+
 app.MapPost("/v1/{tenant}/products/{product}/channels/{channel}", async (HttpRequest request, string tenant, string product,
     string channel, string version, int? percentage, string? fallbackVersion, string? seed, FileRegistryStore store, CancellationToken token) =>
 {

@@ -73,6 +73,21 @@ public sealed class FileRegistryStore(RegistryOptions options)
 
     public string GetBlobPath(string tenant, params string[] segments) => BlobPath(tenant, segments);
 
+    public async ValueTask<BundleSnapshotResult> PublishBundleSnapshotAsync(string tenant, string product, string snapshot,
+        Stream content, Uri publicUri, CancellationToken cancellationToken)
+    {
+        Validate(tenant); Validate(product); Validate(snapshot);
+        var gate = _locks.GetOrAdd($"bundle:{tenant}:{product}:{snapshot}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            var path = BlobPath(tenant, "products", product, "bundles", snapshot + ".json");
+            var (digest, size) = await WriteBlobAsync(path, content, cancellationToken, immutable: true);
+            return new BundleSnapshotResult(publicUri, digest, size, snapshot);
+        }
+        finally { gate.Release(); }
+    }
+
     public async ValueTask SetReleaseMetadataAsync(string tenant, string product, string version,
         ReleaseBundleBootstrap? bundle, IReadOnlyList<string>? postInstallArguments, CancellationToken cancellationToken)
     {
@@ -126,7 +141,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
         finally { gate.Release(); }
     }
 
-    private async ValueTask<(string Digest, long Size)> WriteBlobAsync(string path, Stream content, CancellationToken cancellationToken)
+    private async ValueTask<(string Digest, long Size)> WriteBlobAsync(string path, Stream content, CancellationToken cancellationToken, bool immutable = false)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + ".upload-" + Guid.NewGuid().ToString("N");
@@ -151,7 +166,14 @@ public sealed class FileRegistryStore(RegistryOptions options)
                 digest = Convert.ToHexString(await SHA256.HashDataAsync(verification, cancellationToken));
                 size = verification.Length;
             }
-            File.Move(temporary, path, true);
+            if (immutable && File.Exists(path))
+            {
+                await using var existing = File.OpenRead(path);
+                var existingDigest = Convert.ToHexString(await SHA256.HashDataAsync(existing, cancellationToken));
+                if (!existingDigest.Equals(digest, StringComparison.OrdinalIgnoreCase))
+                    throw new BundleSnapshotConflictException();
+            }
+            else File.Move(temporary, path, true);
             return (digest, size);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
@@ -180,4 +202,10 @@ public sealed class FileRegistryStore(RegistryOptions options)
             throw new ArgumentException("Registry identifiers must be safe path segments.");
         return value;
     }
+}
+
+public sealed record BundleSnapshotResult(Uri Manifest, string Sha256, long Size, string Snapshot);
+public sealed class BundleSnapshotConflictException : Exception
+{
+    public BundleSnapshotConflictException() : base("An immutable bundle snapshot already exists with different content.") { }
 }

@@ -19,7 +19,7 @@ public static class ExternalModuleExtensions
         {
             var manifest = store.GetCurrentAsync(id).AsTask().GetAwaiter().GetResult();
             if (manifest is null) continue;
-            foreach (var command in manifest.Commands) Project(builder, command, manifest, runner, invocationFactory);
+            foreach (var command in manifest.Commands ?? []) Project(builder, command, manifest, runner, invocationFactory);
         }
         return builder;
     }
@@ -45,7 +45,7 @@ public static class ExternalModuleExtensions
                 var id = command.Argument<string>("id");
                 var catalog = command.Option<Uri>("--catalog").IsRequired();
                 var channel = command.Option<string>("--channel").Default("stable");
-                var version = command.Option<string?>("--version");
+                var version = command.Option<string?>("--version").IsOptional();
                 command.OnExecute(new Func<CommandExecutionContext, ValueTask>(async context =>
                 {
                     var installed = await manager.InstallAsync(context.GetOption(catalog), context.GetArgument(id), context.GetOption(channel), context.GetOption(version), context.CancellationToken);
@@ -85,33 +85,33 @@ public static class ExternalModuleExtensions
         {
             if (definition.Description is not null) command.Description(definition.Description);
             if (definition.Hidden) command.Hidden();
-            if (definition.Aliases.Count > 0) command.Alias([.. definition.Aliases]);
-            foreach (var option in definition.Options)
+            if (definition.Aliases?.Count > 0) command.Alias([.. definition.Aliases]);
+            foreach (var option in definition.Options ?? [])
             {
                 if (option.RequiresValue)
                 {
-                    var projected = command.Option<string?>(option.Name);
+                    var projected = command.Option<string?>(option.Name).IsOptional();
                     if (option.Description is not null) projected.Description(option.Description);
-                    if (option.Aliases.Count > 0) projected.WithAlias([.. option.Aliases]);
-                    if (option.Completions.Count > 0) projected.Complete([.. option.Completions]);
+                    if (option.Aliases?.Count > 0) projected.WithAlias([.. option.Aliases]);
+                    if (option.Completions?.Count > 0) projected.Complete([.. option.Completions]);
                 }
                 else
                 {
                     var projected = command.Option(option.Name);
                     if (option.Description is not null) projected.Description(option.Description);
-                    if (option.Aliases.Count > 0) projected.WithAlias([.. option.Aliases]);
+                    if (option.Aliases?.Count > 0) projected.WithAlias([.. option.Aliases]);
                 }
             }
-            foreach (var argument in definition.Arguments)
+            foreach (var argument in definition.Arguments ?? [])
             {
                 var projected = command.Argument<string>(argument.Name);
                 if (!argument.Required) projected.IsOptional();
                 if (argument.Remaining) projected.Variadic();
                 if (argument.Description is not null) projected.Description(argument.Description);
-                if (argument.Completions.Count > 0) projected.Complete([.. argument.Completions]);
+                if (argument.Completions?.Count > 0) projected.Complete([.. argument.Completions]);
             }
-            foreach (var child in definition.Commands) Project(command, child, manifest, runner, invocationFactory);
-            if (definition.Commands.Count == 0)
+            foreach (var child in definition.Commands ?? []) Project(command, child, manifest, runner, invocationFactory);
+            if (definition.Commands?.Count is null or 0)
                 command.OnExecute(new Func<CommandExecutionContext, ValueTask<int>>(context => runner.RunAsync(manifest, context.Arguments, invocationFactory(context), context.CancellationToken)));
         });
     }
