@@ -1,0 +1,11 @@
+name: Contributor CI
+on:
+  push:
+    branches-ignore: ['releases/**', 'prereleases/**']
+  pull_request:
+    branches-ignore: ['releases/**', 'prereleases/**']
+permissions:
+  contents: read
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml

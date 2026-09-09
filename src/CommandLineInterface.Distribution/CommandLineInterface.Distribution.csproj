@@ -11,4 +11,5 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="..\CommandLineInterface\CommandLineInterface.csproj" /><None Include="..\..\README.md" Pack="true" PackagePath="README.md" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/InstallationFiles.cs" Link="IO/InstallationFiles.cs" /></ItemGroup>
 </Project>

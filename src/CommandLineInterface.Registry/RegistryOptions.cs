@@ -14,6 +14,17 @@ public sealed class RegistryOptions
     public bool AllowAnonymousPublish { get; init; } = bool.TryParse(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_ALLOW_ANONYMOUS_PUBLISH"), out var enabled) && enabled;
     public IReadOnlyDictionary<string, string> TenantKeys { get; init; } = ParseKeys(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_API_KEYS"));
     public long MaxUploadBytes { get; init; } = ParseMaxUploadBytes(Environment.GetEnvironmentVariable("COREVAR_REGISTRY_MAX_UPLOAD_BYTES"));
+    // JSON shape: { "tenant/product": { "key-id": "-----BEGIN PUBLIC KEY-----..." } }
+    public Dictionary<string, Dictionary<string, string>> TrustedSigningKeys { get; init; } = LoadSigningKeys();
+    public string[] SignedChannels { get; init; } = (Environment.GetEnvironmentVariable("COREVAR_REGISTRY_SIGNED_CHANNELS") ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static Dictionary<string, Dictionary<string, string>> LoadSigningKeys()
+    {
+        var path = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_SIGNING_KEYS_FILE");
+        return string.IsNullOrWhiteSpace(path) ? [] : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(path))
+            ?? throw new InvalidDataException("Signing keys file is empty.");
+    }
 
     internal static long ParseMaxUploadBytes(string? value) =>
         long.TryParse(value, out var parsed) && parsed > 0 ? parsed : DefaultMaxUploadBytes;

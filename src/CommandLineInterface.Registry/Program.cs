@@ -35,6 +35,11 @@ app.Use(async (context, next) =>
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
     }
+    catch (System.Security.Cryptography.CryptographicException exception) when (!context.Response.HasStarted)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { error = exception.Message });
+    }
 });
 
 if (options.TrustForwardedHeaders)
@@ -61,10 +66,12 @@ app.MapGet("/v1/{tenant}/modules/catalog.json", async (HttpRequest request, stri
     ReadDenied(request, tenant, "catalog.read", "module:*", options) ?? (await store.GetModuleCatalogAsync(tenant, token) is { } catalog ? Results.Json(catalog) : Results.NotFound()));
 app.MapGet("/v1/{tenant}/products/{product}/install.ps1", (HttpRequest request, string tenant, string product, string? channel) =>
     ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? Results.Text(InstallerScriptGenerator.PowerShell(product,
-        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/plain"));
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable",
+        options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"), options.SignedChannels.Contains(channel ?? "stable", StringComparer.OrdinalIgnoreCase)), "text/plain"));
 app.MapGet("/v1/{tenant}/products/{product}/install.sh", (HttpRequest request, string tenant, string product, string? channel) =>
     ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? Results.Text(InstallerScriptGenerator.Shell(product,
-        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable"), "text/x-shellscript"));
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable",
+        options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"), options.SignedChannels.Contains(channel ?? "stable", StringComparer.OrdinalIgnoreCase)), "text/x-shellscript"));
 
 app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/{rid}", async (HttpRequest request, string tenant, string product,
     string version, string rid, string? channel, FileRegistryStore store, CancellationToken token) =>
@@ -73,7 +80,8 @@ app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/{rid}", async (Ht
     channel ??= "stable";
     var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/{version}/{rid}.zip");
     ReleaseArtifact result;
-    try { result = await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token); }
+    try { result = await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token,
+        request.Headers["X-CLI-Signature"].FirstOrDefault(), request.Headers["X-CLI-Signing-Key"].FirstOrDefault()); }
     catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
     Audit(app, request, tenant, "release.publish", $"product:{product}", version);
     return Results.Json(result);

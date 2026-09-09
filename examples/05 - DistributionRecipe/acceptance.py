@@ -21,6 +21,17 @@ sample = Path(__file__).resolve().parent
 repo = sample.parents[1]
 work = Path(tempfile.mkdtemp(prefix='cli-tools-recipe-'))
 print('Artifacts and logs:', work, flush=True)
+
+import atexit
+@atexit.register
+def save_logs():
+    destination = repo/'.artifacts'/work.name
+    destination.mkdir(parents=True, exist_ok=True)
+    for filename in ('commands.log', 'registry.log', 'result.json'):
+        source = work/filename
+        if source.is_file(): shutil.copyfile(source, destination/filename)
+    for secret in work.glob('*.private.pem'): secret.unlink(missing_ok=True)
+
 env = {k:v for k,v in os.environ.items() if not k.startswith(('COREVAR_', 'ASPNETCORE_', 'DOTNET_URLS'))}
 env['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
 env['COREVAR_REGISTRY_TOKEN'] = secrets.token_hex(24)  # Ephemeral fixture credential only.
@@ -57,7 +68,12 @@ with socket.socket() as listener:
     listener.bind(('127.0.0.1',0))
     port = listener.getsockname()[1]
 endpoint = f'http://127.0.0.1:{port}/'
+run(tool, 'keygen', '--private-key-file', work/'release.private.pem', '--public-key-file', work/'release.public.pem')
+public_keys = {'sample-publisher': (work/'release.public.pem').read_text()}
+(work/'publisher-keys.json').write_text(json.dumps(public_keys))
+(work/'registry-keys.json').write_text(json.dumps({'sample/sample-cli': public_keys}))
 registry_env = dict(env, ASPNETCORE_URLS=endpoint, COREVAR_REGISTRY_PUBLIC_BASE_URL=endpoint,
+    COREVAR_REGISTRY_SIGNING_KEYS_FILE=str(work/'registry-keys.json'), COREVAR_REGISTRY_SIGNED_CHANNELS='stable',
     COREVAR_REGISTRY_DATA=str(work/'data'), COREVAR_REGISTRY_API_KEYS='sample='+env['COREVAR_REGISTRY_TOKEN'])
 registry_log = (work/'registry.log').open('w', encoding='utf-8')
 registry = subprocess.Popen(['dotnet',str(work/'registry'/'CoreVar.CommandLineInterface.Registry.dll')],
@@ -87,6 +103,7 @@ def release(version, module_version, module_hash, expected=0):
     directory.mkdir()
     stage = directory/'host'
     shutil.copytree(work/'host',stage)
+    shutil.copyfile(work/'publisher-keys.json', stage/'publisher-keys.json')
     bundle = {'schema':'corevar.cli.bundle/1','id':'sample-cli','snapshot':version,
         'hostCompatibility':'[1.0.0,2.0.0)','catalog':endpoint+'v1/sample/modules/catalog.json',
         'modules':[{'id':'sample-module','version':module_version,'sha256':module_hash,'required':True,'runtimeIdentifiers':[rid]}]}
@@ -97,7 +114,9 @@ def release(version, module_version, module_hash, expected=0):
         'BundleSha256':hashlib.sha256(bundle_file.read_bytes()).hexdigest()}))
     archive = directory/'host.zip'
     run(tool,'package','--source',stage,'--output',archive,'--launcher',launcher)
-    recipe = {'endpoint':endpoint,'tenant':'sample','product':'sample-cli','version':version,
+    run(tool, 'sign', '--file', archive, '--private-key-file', work/'release.private.pem', '--key-id', 'sample-publisher', '--output', directory/'host.signature.json')
+    run(tool, 'verify', '--file', archive, '--signature', directory/'host.signature.json', '--public-key-file', work/'release.public.pem')
+    recipe = {'requireSignatures':True, 'signatures':{rid:'host.signature.json'}, 'endpoint':endpoint,'tenant':'sample','product':'sample-cli','version':version,
         'hostVersion':version,'frameworkVersion':'10.1.0','artifacts':{rid:'host.zip'},
         'bundleManifest':'module-bundle.json','bundleSnapshot':version,'postInstallArguments':['setup'],
         'installerOutput':'installers'}
@@ -134,13 +153,21 @@ try:
         raise AssertionError('Loopback registry did not become healthy')
     digest = module('1.0.0')
     initial = release('1.0.0','1.0.0',digest)
-    if os.name == 'nt':
-        run(shutil.which('pwsh') or 'pwsh','-NoProfile','-File',initial/'installers/install.ps1',
-            '-InstallDir',work/'installation','-NoPath')
-    else:
-        unix_env = dict(env, HOME=str(work/'home'), INSTALL_DIR=str(work/'installation'))
-        (work/'home').mkdir()
-        run('sh',initial/'installers/install.sh',process_env=unix_env)
+    def bootstrap(directory, expected=0):
+        if os.name == 'nt':
+            run(shutil.which('pwsh') or 'pwsh', '-NoProfile', '-File', directory/'installers/install.ps1',
+                '-InstallDir', work/'installation', '-NoPath', '-Quiet', expected=expected)
+        else:
+            unix_env = dict(env, HOME=str(work/'home'), INSTALL_DIR=str(work/'installation'))
+            (work/'home').mkdir(exist_ok=True)
+            run('sh', directory/'installers/install.sh', '--quiet', '--no-path', process_env=unix_env, expected=expected)
+    bootstrap(initial)
+    bootstrap(initial)  # Idempotent quiet install with signature enforcement.
+    dynamic = work/'dynamic'
+    (dynamic/'installers').mkdir(parents=True)
+    for filename in ('install.ps1', 'install.sh'):
+        urllib.request.urlretrieve(endpoint+'v1/sample/products/sample-cli/'+filename, dynamic/'installers'/filename)
+    bootstrap(dynamic)  # Registry-served installers inherit owned keys and protected-channel policy.
     assert state()['version'] == '1.0.0'
     dispatch('1.0.0')
     print('PASS: public package/publish recipe -> generated installer -> native child dispatch.', flush=True)
@@ -150,11 +177,17 @@ try:
     dispatch('1.0.0')
     print('PASS: real host update and required bundle setup.', flush=True)
     next_digest = module('1.1.0')
-    release('1.2.0','1.1.0',next_digest)
+    broken = release('1.2.0','1.1.0',next_digest)
     blob = work/'data/tenants/sample/blobs/modules/sample-module/1.1.0/module.zip'
     unavailable = blob.with_suffix('.unavailable')
     blob.rename(unavailable)  # Fault injection AFTER valid publication: download unavailable.
     try:
+        previous_launcher = installed.read_bytes()
+        bootstrap(broken, expected=1)
+        assert state()['version'] == '1.1.0'
+        assert installed.read_bytes() == previous_launcher
+        dispatch('1.0.0')
+        print('PASS: failed signed bootstrap upgrade preserves active host and launcher.', flush=True)
         run(installed,'update',process_env=client_env,expected=1)
         assert state()['version'] == '1.1.0'
         dispatch('1.0.0')
@@ -173,7 +206,7 @@ try:
     assert next(r for r in after['releases'] if r['version']=='1.3.0').get('bundle') is None
     print('PASS: retry, same-version readiness, and bad bundle promotion rejection.', flush=True)
     (work/'result.json').write_text(json.dumps({'status':'passed','rid':rid,'registry':'loopback',
-        'cases':['install-dispatch','update','required-module-rollback','retry','same-version-readiness','invalid-bundle-promotion']},indent=2))
+        'cases':['signed-install','quiet-idempotency','bootstrap-failure','install-dispatch','update','required-module-rollback','retry','same-version-readiness','invalid-bundle-promotion']},indent=2))
 finally:
     registry.terminate()
     try:

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using CoreVar.CommandLineInterface.IO;
 
 namespace CoreVar.CommandLineInterface.Publishing;
 
@@ -9,10 +10,18 @@ public static class PackageBuilder
     {
         var source = Path.GetFullPath(sourceDirectory);
         if (!Directory.Exists(source)) throw new DirectoryNotFoundException(source);
+        var destination = Path.GetFullPath(outputPath);
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (destination.StartsWith(source.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, comparison))
+            throw new ArgumentException("Package output must be outside the source directory.", nameof(outputPath));
+        if (launcherPath is not null && !File.Exists(launcherPath)) throw new FileNotFoundException("Launcher was not found.", launcherPath);
+        var files = InstallationFiles.PayloadFiles(source).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        if (launcherPath is not null && files.Any(file => Path.GetRelativePath(source, file).Replace('\\', '/').Equals(".corevar/launcher" + Path.GetExtension(launcherPath), StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidDataException("The payload already contains a launcher at the reserved package path.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
         using var output = File.Create(outputPath);
         using var archive = new ZipArchive(output, ZipArchiveMode.Create);
-        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories).OrderBy(value => value, StringComparer.Ordinal))
+        foreach (var file in files)
         {
             var relative = Path.GetRelativePath(source, file).Replace('\\', '/');
             if (relative.Split('/').Any(part => part is ".git" or "obj" or "node_modules" or ".venv")) continue;

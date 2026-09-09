@@ -27,7 +27,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
     }
 
     public async ValueTask<ReleaseArtifact> PublishReleaseAsync(string tenant, string product, string version,
-        string rid, string channel, Stream content, Uri publicUri, CancellationToken cancellationToken)
+        string rid, string channel, Stream content, Uri publicUri, CancellationToken cancellationToken, string? signature = null, string? signingKeyId = null)
     {
         Validate(tenant); Validate(product); Validate(version); Validate(rid); Validate(channel);
         var gate = _locks.GetOrAdd($"release:{tenant}:{product}", _ => new SemaphoreSlim(1, 1));
@@ -35,8 +35,12 @@ public sealed class FileRegistryStore(RegistryOptions options)
         try
         {
             var blobPath = BlobPath(tenant, "products", product, version, rid + ".zip");
-            var (digest, size) = await WriteBlobAsync(blobPath, content, cancellationToken, immutable: true);
-            var artifact = new ReleaseArtifact { RuntimeIdentifier = rid, Uri = publicUri, Sha256 = digest, Size = size };
+            var verifier = new ArtifactVerifier(options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"),
+                options.SignedChannels.Contains(channel, StringComparer.OrdinalIgnoreCase));
+            var (digest, size) = await WriteBlobAsync(blobPath, content, cancellationToken, immutable: true,
+                validate: (path, hash) => verifier.VerifyAsync(path, new ReleaseArtifact { RuntimeIdentifier = rid, Uri = publicUri,
+                    Sha256 = hash, Signature = signature, SigningKeyId = signingKeyId }, cancellationToken));
+            var artifact = new ReleaseArtifact { RuntimeIdentifier = rid, Uri = publicUri, Sha256 = digest, Size = size, Signature = signature, SigningKeyId = signingKeyId };
             var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken) ?? new ReleaseCatalog { Product = product };
             var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
             if (release is null) { release = new ReleaseManifest { Version = version, PublishedAt = DateTimeOffset.UtcNow }; catalog.Releases.Add(release); }
@@ -72,6 +76,15 @@ public sealed class FileRegistryStore(RegistryOptions options)
     }
 
     public string GetBlobPath(string tenant, params string[] segments) => BlobPath(tenant, segments);
+
+    private async ValueTask VerifyPromotionAsync(string tenant, string product, ReleaseManifest release, string channel, CancellationToken token)
+    {
+        var verifier = new ArtifactVerifier(options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"),
+            options.SignedChannels.Contains(channel, StringComparer.OrdinalIgnoreCase));
+        if (release.Artifacts.Count == 0) throw new InvalidOperationException("Cannot promote a release without artifacts.");
+        foreach (var artifact in release.Artifacts)
+            await verifier.VerifyAsync(BlobPath(tenant, "products", product, release.Version, artifact.RuntimeIdentifier + ".zip"), artifact, token);
+    }
 
     public async ValueTask<BundleSnapshotResult> PublishBundleSnapshotAsync(string tenant, string product, string snapshot,
         Stream content, Uri publicUri, CancellationToken cancellationToken)
@@ -123,6 +136,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
                 throw new InvalidOperationException("A revoked release or artifact cannot be promoted.");
             var missing = requiredRids.Where(rid => !release.Artifacts.Any(item => item.RuntimeIdentifier.Equals(rid, StringComparison.OrdinalIgnoreCase))).ToArray();
             if (missing.Length > 0) throw new InvalidOperationException($"Release is missing required artifacts: {string.Join(", ", missing)}.");
+            await VerifyPromotionAsync(tenant, product, release, promoteChannel, cancellationToken);
             if (bundle is not null)
             {
                 var expected = PublicBundlePath(tenant, product, bundle);
@@ -176,6 +190,8 @@ public sealed class FileRegistryStore(RegistryOptions options)
         {
             var catalog = await GetReleaseCatalogAsync(tenant, product, cancellationToken) ?? throw new KeyNotFoundException("Product catalog not found.");
             if (!catalog.Releases.Any(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase))) throw new KeyNotFoundException("Release not found.");
+            var release = catalog.Releases.Single(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
+            await VerifyPromotionAsync(tenant, product, release, channel, cancellationToken);
             catalog.Channels[channel] = version;
             catalog.Rollouts.RemoveAll(item => item.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase));
             if (percentage < 100) catalog.Rollouts.Add(new ChannelRollout { Channel = channel, Version = version, FallbackVersion = fallbackVersion, Percentage = Math.Clamp(percentage, 0, 100), Seed = seed });
@@ -199,7 +215,8 @@ public sealed class FileRegistryStore(RegistryOptions options)
         finally { gate.Release(); }
     }
 
-    private async ValueTask<(string Digest, long Size)> WriteBlobAsync(string path, Stream content, CancellationToken cancellationToken, bool immutable = false)
+    private async ValueTask<(string Digest, long Size)> WriteBlobAsync(string path, Stream content, CancellationToken cancellationToken, bool immutable = false,
+        Func<string, string, ValueTask>? validate = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + ".upload-" + Guid.NewGuid().ToString("N");
@@ -224,6 +241,7 @@ public sealed class FileRegistryStore(RegistryOptions options)
                 digest = Convert.ToHexString(await SHA256.HashDataAsync(verification, cancellationToken));
                 size = verification.Length;
             }
+            if (validate is not null) await validate(temporary, digest);
             if (immutable && File.Exists(path))
             {
                 await using var existing = File.OpenRead(path);

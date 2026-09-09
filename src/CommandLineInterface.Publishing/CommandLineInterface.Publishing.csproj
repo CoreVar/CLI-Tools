@@ -13,4 +13,6 @@
     <ProjectReference Include="..\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
     <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Installers/*" LogicalName="CoreVar.Installers.%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/InstallationFiles.cs" Link="IO/InstallationFiles.cs" /></ItemGroup>
 </Project>

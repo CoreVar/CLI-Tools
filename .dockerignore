@@ -10,3 +10,7 @@ registry-publish
 tests
 deploy
 docs
+.tools
+.wix
+.artifacts
+**/*.private.pem

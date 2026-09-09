@@ -23,4 +23,16 @@
     <Compile Remove="**\*" />
   </ItemGroup>
 
+  <Target Name="StampTemplatePackageVersions" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <TemplateInput Include="templates/**/*" Exclude="templates/**/bin/**;templates/**/obj/**;templates/**/.vs/**;templates/**/node_modules/**;templates/**/__pycache__/**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(TemplateInput)" DestinationFiles="@(TemplateInput->'$(IntermediateOutputPath)pack-templates/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <ItemGroup><TemplateProject Include="$(IntermediateOutputPath)pack-templates/**/*.csproj" /></ItemGroup>
+    <XmlPoke XmlInputPath="%(TemplateProject.Identity)" Query="/Project/ItemGroup/PackageReference[@Include='CoreVar.CommandLineInterface']/@Version" Value="$(PackageVersion)" />
+    <ItemGroup>
+      <Content Remove="@(Content)" />
+      <Content Include="$(IntermediateOutputPath)pack-templates/**/*" PackagePath="content/%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
 </Project>

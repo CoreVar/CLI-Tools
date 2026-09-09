@@ -7,8 +7,7 @@ public sealed class ReleaseSetupCoordinator(DirectUpdater updater)
         Func<InstallationState, CancellationToken, ValueTask<bool>> readiness, string? version = null,
         CancellationToken cancellationToken = default)
     {
-        return await RunAsync(current, (state, token) => updater.UpdateAsync(state, version, token),
-            (state, token) => updater.RollbackAsync(state, token), readiness, cancellationToken);
+        return await updater.UpdateAsync(current, version, cancellationToken, readiness);
     }
 
     public static async ValueTask<InstallationState> RunAsync(InstallationState current,

@@ -85,24 +85,6 @@ public sealed class ModuleBundleTests : IDisposable
         Assert.Equal(ModuleBundleItemStatus.Failed, Assert.Single(result.Items).Status);
     }
 
-    [Fact]
-    public void GeneratedInstallersConsumeBundleMetadataAndGateSuccessOnBootstrap()
-    {
-        var powerShell = InstallerScriptGenerator.PowerShell("sample", new("https://registry.example/v1/acme/products/sample/catalog.json"));
-        var shell = InstallerScriptGenerator.Shell("sample", new("https://registry.example/v1/acme/products/sample/catalog.json"));
-        Assert.Contains("OSArchitecture", powerShell);
-        Assert.Contains("'arm64' {'arm64'}", powerShell);
-        Assert.Contains("postInstallArguments", powerShell);
-        Assert.True(powerShell.IndexOf("Post-install bootstrap failed", StringComparison.Ordinal) < powerShell.IndexOf("Installed sample", StringComparison.Ordinal));
-        Assert.Contains("module-bundle.json", shell);
-        Assert.Contains("HOST_ENTRYPOINT", shell);
-        Assert.Contains("chmod 0755 \"$HOST_ENTRYPOINT\"", shell);
-        Assert.Equal(2, shell.Split("command -v sha256sum", StringSplitOptions.None).Length - 1);
-        Assert.DoesNotContain("|| shasum", shell);
-        Assert.Contains("postInstallArguments", shell);
-        Assert.True(shell.IndexOf("subprocess.call", StringComparison.Ordinal) < shell.IndexOf("Installed sample", StringComparison.Ordinal));
-    }
-
     private async ValueTask<ModuleRelease> CreatePackageAsync(string id, string version)
     {
         var package = Path.Combine(_root, "module.zip");

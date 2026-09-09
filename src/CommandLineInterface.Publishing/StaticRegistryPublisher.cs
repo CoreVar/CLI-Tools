@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using CoreVar.CommandLineInterface.Distribution;
 using CoreVar.CommandLineInterface.Modules;
+using CoreVar.CommandLineInterface.IO;
 
 namespace CoreVar.CommandLineInterface.Publishing;
 
@@ -12,13 +13,16 @@ public sealed class StaticRegistryPublisher(string root, Uri publicBaseUri)
     private readonly Uri _publicBase = new(publicBaseUri.AbsoluteUri.TrimEnd('/') + "/");
 
     public async ValueTask<ReleaseArtifact> PublishCliAsync(string tenant, string product, string version, string rid,
-        string artifactPath, string channel = "stable", CancellationToken cancellationToken = default)
+        string artifactPath, string channel = "stable", CancellationToken cancellationToken = default, ArtifactSignature? signature = null)
     {
         Validate(tenant); Validate(product); Validate(version); Validate(rid); Validate(channel);
+        using var operation = InstallationFiles.AcquireLock(_root);
+        if (signature is not null) await signature.VerifyAsync(artifactPath, cancellationToken);
         var relative = Path.Combine("v1", tenant, "blobs", "products", product, version, rid + Path.GetExtension(artifactPath)).Replace('\\', '/');
         var target = Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
         var (digest, size) = await CopyAsync(artifactPath, target, cancellationToken);
-        var artifact = new ReleaseArtifact { RuntimeIdentifier = rid, Uri = new Uri(_publicBase, relative), Sha256 = digest, Size = size, Format = Path.GetExtension(artifactPath).TrimStart('.') };
+        if (signature is not null) await signature.VerifyAsync(target, cancellationToken);
+        var artifact = new ReleaseArtifact { RuntimeIdentifier = rid, Uri = new Uri(_publicBase, relative), Sha256 = digest, Size = size, Format = Path.GetExtension(artifactPath).TrimStart('.'), Signature = signature?.Signature, SigningKeyId = signature?.KeyId };
         var catalogPath = Path.Combine(_root, "v1", tenant, "products", product, "catalog.json");
         var catalog = await ReadAsync(catalogPath, DistributionJsonContext.Default.ReleaseCatalog, cancellationToken) ?? new ReleaseCatalog { Product = product };
         var release = catalog.Releases.FirstOrDefault(item => item.Version.Equals(version, StringComparison.OrdinalIgnoreCase));
@@ -33,6 +37,7 @@ public sealed class StaticRegistryPublisher(string root, Uri publicBaseUri)
         string channel = "stable", string? description = null, CancellationToken cancellationToken = default)
     {
         Validate(tenant); Validate(id); Validate(version); Validate(channel);
+        using var operation = InstallationFiles.AcquireLock(_root);
         var relative = Path.Combine("v1", tenant, "blobs", "modules", id, version, "module.zip").Replace('\\', '/');
         var target = Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
         var (digest, _) = await CopyAsync(packagePath, target, cancellationToken);
@@ -50,9 +55,22 @@ public sealed class StaticRegistryPublisher(string root, Uri publicBaseUri)
     private static async ValueTask<(string Digest, long Size)> CopyAsync(string source, string target, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-        await using (var input = File.OpenRead(source)) await using (var output = File.Create(target)) await input.CopyToAsync(output, cancellationToken);
-        await using var verify = File.OpenRead(target);
-        return (Convert.ToHexString(await SHA256.HashDataAsync(verify, cancellationToken)), verify.Length);
+        var temporary = target + ".upload-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await using (var input = File.OpenRead(source)) await using (var output = File.Create(temporary)) await input.CopyToAsync(output, cancellationToken);
+            string digest; long size;
+            await using (var verify = File.OpenRead(temporary)) { digest = Convert.ToHexString(await SHA256.HashDataAsync(verify, cancellationToken)); size = verify.Length; }
+            if (File.Exists(target))
+            {
+                await using var existing = File.OpenRead(target);
+                if (Convert.ToHexString(await SHA256.HashDataAsync(existing, cancellationToken)) != digest)
+                    throw new InvalidDataException("Published artifacts are immutable. Publish a new version for changed content.");
+            }
+            else File.Move(temporary, target);
+            return (digest, size);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     private static async ValueTask<T?> ReadAsync<T>(string path, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type, CancellationToken cancellationToken)
@@ -65,8 +83,13 @@ public sealed class StaticRegistryPublisher(string root, Uri publicBaseUri)
     private static async ValueTask WriteAsync<T>(string path, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, value, type, cancellationToken);
+        var temporary = path + ".new-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            await using (var stream = File.Create(temporary)) await JsonSerializer.SerializeAsync(stream, value, type, cancellationToken);
+            File.Move(temporary, path, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     private static void Validate(string value) => _ = new DistributionPaths(Path.GetTempPath()).Version(value);

@@ -9,7 +9,10 @@ on:
       - 'releases/**'
 
 jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
   build:
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,7 +22,11 @@ jobs:
   
     - name: Extract branch name
       shell: bash
-      run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/releases/}}" >> $GITHUB_OUTPUT
+      run: |
+        release_branch="${GITHUB_BASE_REF:-${GITHUB_REF_NAME}}"
+        version="${release_branch#releases/}"
+        [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Release branch must name a major.minor.patch version" >&2; exit 1; }
+        echo "branch=$version" >> "$GITHUB_OUTPUT"
       id: extract_branch
 
     - name: Set up .NET
@@ -33,7 +40,7 @@ jobs:
       run: dotnet build ./src/CLI-Tools.sln --configuration Release
 
     - name: Test .NET 8 and .NET 10
-      run: dotnet test ./tests/CommandLineInterface.Tests/CommandLineInterface.Tests.csproj --configuration Release --no-restore
+      run: dotnet test ./src/CLI-Tools.sln --configuration Release --no-restore
 
     - name: Native AOT smoke test
       run: |

@@ -1,4 +1,4 @@
-using System.IO.Compression;
+using CoreVar.CommandLineInterface.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -13,6 +13,8 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
     public async ValueTask<ModuleManifest> InstallAsync(string expectedId, ModuleRelease release,
         Uri? catalog = null, CancellationToken cancellationToken = default)
     {
+        ModulePaths.ValidateSegment(expectedId); ModulePaths.ValidateSegment(release.Version);
+        using var operation = InstallationFiles.AcquireLock(paths.Module(expectedId));
         if (release.Revoked) throw new InvalidOperationException("A revoked module release cannot be installed.");
         Directory.CreateDirectory(paths.Cache);
         var packagePath = Path.Combine(paths.Cache, $"{expectedId}-{release.Version}-{Guid.NewGuid():N}.zip");
@@ -24,7 +26,7 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
             Directory.CreateDirectory(staging);
             try
             {
-                ExtractSecurely(packagePath, staging);
+                InstallationFiles.Extract(packagePath, staging, cancellationToken);
                 var manifestPath = Path.Combine(staging, "corevar.module.json");
                 if (!File.Exists(manifestPath)) throw new InvalidDataException("The package does not contain corevar.module.json at its root.");
                 ModuleManifest manifest;
@@ -38,15 +40,24 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
                 await provisioner.ProvisionAsync(manifest, cancellationToken);
 
                 var target = paths.Version(expectedId, release.Version);
-                if (Directory.Exists(target)) Directory.Delete(target, true);
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                Directory.Move(staging, target);
+                if (Directory.Exists(target))
+                {
+                    var marker = Path.Combine(target, ".corevar-artifact.sha256");
+                    if (!File.Exists(marker) || !File.ReadAllText(marker).Equals(release.Sha256, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("Existing module version has different or unknown contents and will not be overwritten.");
+                }
+                else
+                {
+                    File.WriteAllText(Path.Combine(staging, ".corevar-artifact.sha256"), release.Sha256);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    Directory.Move(staging, target);
+                }
                 manifest.InstallDirectory = target;
                 var previous = await store.GetPointerAsync(expectedId, cancellationToken);
                 await store.ActivateAsync(expectedId, new ModuleInstallationPointer
                 {
                     Version = release.Version,
-                    PreviousVersion = previous?.Version,
+                    PreviousVersion = previous?.Version == release.Version ? previous.PreviousVersion : previous?.Version,
                     Channel = release.Channel,
                     Catalog = catalog
                 }, cancellationToken);
@@ -65,6 +76,7 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
 
     public async ValueTask<bool> RollbackAsync(string id, CancellationToken cancellationToken = default)
     {
+        using var operation = InstallationFiles.AcquireLock(paths.Module(id));
         var pointer = await store.GetPointerAsync(id, cancellationToken);
         if (pointer?.PreviousVersion is null) return false;
         if (!Directory.Exists(paths.Version(id, pointer.PreviousVersion))) return false;
@@ -81,7 +93,12 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
     public void Remove(string id)
     {
         var directory = paths.Module(id);
-        if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        if (!Directory.Exists(directory)) return;
+        using var operation = InstallationFiles.AcquireLock(directory);
+        // Retain the locked directory and lock file so another process cannot bypass the lock.
+        foreach (var child in Directory.EnumerateDirectories(directory)) Directory.Delete(child, true);
+        foreach (var file in Directory.EnumerateFiles(directory))
+            if (Path.GetFileName(file) != ".operation.lock") File.Delete(file);
     }
 
     private async ValueTask DownloadAsync(Uri source, string target, CancellationToken cancellationToken)
@@ -103,28 +120,6 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
         var normalized = expected.Replace("sha256:", string.Empty, StringComparison.OrdinalIgnoreCase).Replace("-", string.Empty);
         if (!actual.Equals(normalized, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The module package SHA-256 digest did not match its catalog entry.");
-    }
-
-    private static void ExtractSecurely(string archivePath, string destination)
-    {
-        var root = Path.GetFullPath(destination) + Path.DirectorySeparatorChar;
-        using var archive = ZipFile.OpenRead(archivePath);
-        foreach (var entry in archive.Entries)
-        {
-            var target = Path.GetFullPath(Path.Combine(destination, entry.FullName));
-            if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("The module archive contains a path outside its root.");
-            if (string.IsNullOrEmpty(entry.Name)) { Directory.CreateDirectory(target); continue; }
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            entry.ExtractToFile(target, true);
-            if (!OperatingSystem.IsWindows())
-            {
-                // ZIP stores Unix mode bits in the high 16 bits. Preserve only ordinary rwx bits;
-                // deliberately exclude setuid, setgid, and sticky bits from untrusted packages.
-                var permissions = (entry.ExternalAttributes >> 16) & 0x1FF;
-                if (permissions != 0) File.SetUnixFileMode(target, (UnixFileMode)permissions);
-            }
-        }
     }
 
     private static void ValidateManifest(ModuleManifest manifest, string expectedId, string expectedVersion)

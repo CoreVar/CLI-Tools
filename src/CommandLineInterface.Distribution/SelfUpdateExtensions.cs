@@ -14,6 +14,12 @@ public sealed class SelfUpdateOptions
     public InstallationProvider Provider { get; init; } = InstallationProvider.Direct;
     public string? PackageId { get; init; }
     public string? Entrypoint { get; init; }
+    /// <summary>Publisher public keys, keyed by the stable signing key ID. Never include private keys.</summary>
+    public IReadOnlyDictionary<string, string> TrustedPublicKeys { get; init; } = new Dictionary<string, string>();
+    /// <summary>Reject unsigned artifacts. Defaults to false for local and unsigned community builds.</summary>
+    public bool RequireSignature { get; init; }
+    /// <summary>Runs the candidate host's setup/health check before activation. Required for bundled releases.</summary>
+    public Func<InstallationState, CancellationToken, ValueTask<bool>>? Readiness { get; init; }
 }
 
 public static class SelfUpdateExtensions
@@ -50,13 +56,13 @@ public static class SelfUpdateExtensions
                     context.Result = await RunAsync(native, context.CancellationToken);
                     return;
                 }
-                var updated = await CreateUpdater(options).UpdateAsync(state, cancellationToken: context.CancellationToken);
+                var updated = await CreateUpdater(options).UpdateAsync(state, cancellationToken: context.CancellationToken, readiness: options.Readiness);
                 await context.Console.WriteLine(updated.Version == state.Version ? "Already up to date." : $"Installed {updated.Version}. Restart the CLI to use it.");
             }));
         });
     }
 
-    private static DirectUpdater CreateUpdater(SelfUpdateOptions options) => new(new DistributionPaths(Root(options)), new ReleaseCatalogClient(), new ArtifactVerifier());
+    private static DirectUpdater CreateUpdater(SelfUpdateOptions options) => new(new DistributionPaths(Root(options)), new ReleaseCatalogClient(), new ArtifactVerifier(options.TrustedPublicKeys, options.RequireSignature));
 
     private static async ValueTask<InstallationState> LoadStateAsync(SelfUpdateOptions options, CancellationToken cancellationToken)
     {

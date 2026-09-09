@@ -1,31 +1,60 @@
-# CLI Tools for .NET Applications
+# CLI Tools for .NET
 
-Welcome to the CLI Tools repository, where we've developed a robust set of .NET tools for building .NET command line applications efficiently. This repository contains a series of examples demonstrating various capabilities from basic command handling to complex integrations with frameworks like Blazor for web-based management interfaces.
+Build command-line applications with fluent commands or source-generated components. CLI Tools is free, open source, and MIT licensed. No CoreVar account or hosted service is required.
 
-## Features
+> This branch contains the next prerelease. The quickstart targets that API; use matching prerelease packages or [build local packages](CONTRIBUTING.md).
 
-- **Simple authoring**: Build commands with a compact fluent API or source-generated component classes.
-- **Rich binding**: Scalars, enums, dates, paths, URIs, arrays, lists, repeated options, variadic arguments, environment variables, configuration, defaults, and response files.
-- **Production CLI behavior**: Validation, middleware, cancellation, aliases, deprecation, hidden commands, global options, typo suggestions, help, version output, and shell completion.
-- **Native privilege elevation**: Run selected operations through Windows UAC or `sudo` without embedding platform-specific process code in commands.
-- **Automation friendly**: A host-backed test harness, JSON/JSONL helpers, and generated Markdown reference documentation.
-- **Dependency Injection**: Utilizes scoped and singleton services efficiently across command executions, compatible with both single execution and REPL (Read-Eval-Print Loop) modes.
-- **Error Handling**: Robust error management with default and customizable error handling strategies.
-- **Integration with ASP.NET Core**: Examples showing how to integrate and manage an ASP.NET Core web host within CLI commands.
-- **Blazor Integration**: Advanced samples demonstrating how to embed CLI in a Blazor application for interactive command execution directly from the browser.
-- **Modular Design**: Easy to extend and customize, supporting a wide range of applications and use cases.
-- **.NET 8 and .NET 10**: One package targets both the current LTS generations. Major package releases track .NET's even-numbered LTS cadence.
-- **AOT Compatible**: The core CLI runtime and source-generated components support trimming and Native AOT. (Blazor examples retain the platform's own publishing constraints.)
+## Your first command
 
-## Getting Started
+```console
+dotnet new console -n MyCli --framework net8.0
+cd MyCli
+dotnet add package CoreVar.CommandLineInterface --prerelease
+```
 
-> The modules and distribution APIs described below are the next-release workstream and are published from the corresponding prerelease branch while they stabilize.
+Replace `Program.cs`:
 
-## Modules and self-distribution
+```csharp
+using CoreVar.CommandLineInterface;
 
-The next release adds language-neutral modules, transactional self-update, a self-hosted registry, static/Git-backed distribution, and native packaging generators. CoreVar does not operate a required hosted service.
+await CliApp.RunAsync(cli => cli
+    .Command("hello", command => command
+        .OnExecute(() => Console.WriteLine("Hello!"))));
+```
 
-Enable built-in modules, locally installed external modules, module management, and self-update with one fluent setup:
+```console
+dotnet run -- hello
+```
+
+Or start from a template:
+
+```console
+dotnet new install CoreVar.CommandLineInterface.Templates --prerelease
+dotnet new cli-simple -n MyCli
+```
+
+Use `cli-components` for source-generated command classes. Packaged templates reference the matching framework package version. Both start as ordinary one-shot CLIs; opt into `.EnableRepl()` when you want an interactive shell.
+
+## What to use
+
+| Need | Package or project |
+| --- | --- |
+| Commands, options, help, validation, middleware, cancellation, testing | `CoreVar.CommandLineInterface` |
+| Out-of-process modules in .NET, Python, Node or another language | `CoreVar.CommandLineInterface.Modules` |
+| Signed archive verification, self-update and rollback | `CoreVar.CommandLineInterface.Distribution` |
+| Packaging and static/server publication | `CoreVar.CommandLineInterface.Publishing` / `CoreVar.CliTools` tool |
+| Optional self-hosted registry | `CommandLineInterface.Registry` |
+| Optional browser console | `CoreVar.CommandLineInterface.Blazor` |
+
+The basic CLI has no dependency on the optional registry, modules, or publishing stack. The core runtime and source-generated components target .NET 8 and .NET 10 and support trimming/Native AOT. Blazor has its own platform publishing constraints.
+
+## Release status
+
+The modules/distribution/installer work on this branch is **prerelease**. The examples below describe this checkout and packages built from it; they may not exist in the latest stable NuGet package. Use the corresponding prerelease packages together, or follow [the contributor guide](CONTRIBUTING.md) to build local packages.
+
+Unit tests and executable acceptance fixtures are the source of qualification. CI covers Windows, Linux and macOS; a locally passing Windows run alone does not qualify another platform. Native Windows installers support MSI/Burn build and a certificate-store signing provider. Signing a release with a publicly trusted certificate requires the publisher's credentials; ordinary development and unsigned builds do not.
+
+## Optional modules and distribution
 
 ```csharp
 await CliApp.RunAsync(cli => cli
@@ -35,160 +64,43 @@ await CliApp.RunAsync(cli => cli
     .SelfUpdate(new()
     {
         Product = "acme",
-        CurrentVersion = "11.0.0",
+        CurrentVersion = "1.0.0",
         Catalog = new("https://cli.acme.example/v1/public/products/acme/catalog.json")
     }));
 ```
 
-External modules run out of process and can be authored in any language. Python modules receive a private virtual environment; Node modules receive a private lockfile-restored dependency directory. Both may ship their runtime when a system runtime is inappropriate.
+External modules run out of process. Python and Node modules can use private dependency environments. These isolate dependencies, not untrusted code; installed modules have the user's privileges.
+
+Start with static files if you do not need a registry service:
 
 ```console
-acme module install cloud --catalog https://cli.acme.example/v1/public/modules/catalog.json
-acme module update cloud
-acme module rollback cloud
-acme update check
-acme update
+cli-tools package --source ./publish --launcher ./launcher/corevar-cli-launcher --output ./dist/acme-linux-x64.zip
+cli-tools publish static-cli --root ./site --public-base https://example.org/acme/ --tenant public --product acme --version 1.0.0 --rid linux-x64 --file ./dist/acme-linux-x64.zip
+cli-tools generate installers --product acme --catalog https://example.org/acme/v1/public/products/acme/catalog.json --output ./dist/installers
 ```
 
-Create module projects:
+Use `.exe` launcher paths for Windows artifacts. Serve the generated site from any trusted static HTTPS host. Static artifacts are immutable: publish a new version when bytes change. For signed distribution, configure independently trusted public keys and required-signature policy; see [installation and signing](docs/installers.md).
 
-```console
-dotnet new corevar-module-dotnet -n Acme.Cloud
-dotnet new corevar-module-python -n Acme.Cloud
-dotnet new corevar-module-node -n Acme.Cloud
-```
+The optional registry can run in your own environment with `docker compose -f deploy/docker/compose.yml up -d`. See [self-hosting](deploy/README.md) for access configuration and deployment templates. It is not needed to author a CLI, package files, or publish a static catalog.
 
-Package and publish from a build pipeline:
+## Guides and examples
 
-```console
-dotnet tool install --global CoreVar.CliTools --prerelease
-cli-tools package --source ./publish --launcher ./launcher/corevar-cli-launcher.exe \
-  --output ./dist/acme-win-x64.zip
-cli-tools publish cli --endpoint https://cli.acme.example --tenant public \
-  --product acme --version 11.0.0 --rid win-x64 \
-  --file ./dist/acme-win-x64.zip --channel stable
-```
-
-Run the registry entirely in your own environment:
-
-```console
-docker compose -f deploy/docker/compose.yml up -d
-```
-
-Or avoid running a service and generate a static registry suitable for GitHub Pages:
-
-```console
-cli-tools publish static-cli --root ./docs --public-base https://example.github.io/acme/ \
-  --tenant public --product acme --version 11.0.0 --rid linux-x64 \
-  --file ./dist/acme-linux-x64.zip
-```
-
-The authoring tool also generates PowerShell/POSIX bootstrap installers, winget and Homebrew metadata, Debian control files, RPM specs, MSIX App Installer documents, and WiX MSI source. See [the architecture and protocol](docs/vnext-distribution.md) and [self-hosting templates](deploy/README.md).
-
-### Privileged operations
-
-Elevate only the operation that needs administrative access:
-
-```csharp
-var result = await context.RunElevatedAsync(
-    "sc.exe",
-    ["create", "AcmeAgent", @"binPath=C:\Program Files\Acme\agent.exe"]);
-
-if (result.Canceled)
-    context.Console.WriteErrorLine("Administrator access was declined.");
-else
-    context.Result = result.ExitCode ?? (result.Started ? 0 : 1);
-```
-
-Use `context.IsElevated()` to avoid unnecessary prompts, or
-`context.RelaunchElevatedAsync()` when the entire current command must restart with elevated privileges.
-The default service uses Windows UAC's `runas` verb and `sudo` on Linux/macOS, preserves arguments as
-separate values, and can be replaced through dependency injection for tests or custom hosts.
-
-### Prerequisites
-
-Ensure you have the following installed:
-- **.NET 8.0 SDK** or **.NET 10.0 SDK**
-- An IDE such as Visual Studio, VS Code, or JetBrains Rider
-
-### Setting Up a New Project
-1. **Install Project Templates (once per machine)**
-   ```bash
-   dotnet new install CoreVar.CommandLineInterface.Templates
-   ``` 
-2. **Create a New Simple CLI Project**
-    - Simple CLI
-      ```bash
-      dotnet new cli-simple -n MyCli
-      ``` 
-    - OR Components CLI
-      ```bash
-      dotnet new cli-components -n MyCli
-      ```
-
-### Add Tools to an Existing Project
-
-1. **Add the CoreVar.CommandLineInterface NuGet Package**:
-   ```bash
-   dotnet add package CoreVar.CommandLineInterface
-   ```
-
-2. **Modify Program.cs**
-    ```
-    using CoreVar.CommandLineInterface;
-
-    await CliApp.RunAsync(cliApp =>
-    {
-        cliApp
-            .Command("start", startCommand =>
-            {
-                startCommand
-                    .OnExecute(() => Console.WriteLine("Service started"));
-            })
-            .Command("stop", stopCommand =>
-            {
-                stopCommand
-                    .OnExecute(() => Console.WriteLine("Service stopped."));
-            });
-    });
-    ```
-
-    This is the simplest example of how to build a CLI application. See the [v10 guide](docs/v10.md) for validation, middleware, binding, completion, component metadata, prompting, testing, and documentation generation.
-
-5. **Explore the Examples**:
-   Navigate to the examples within this repository to see how to implement various CLI functionalities.
-
-### Running the Examples
-
-To run any of the examples, run/debug from Visual Studio 2022 or use the following command from within the project directory:
-
-```bash
-dotnet run
-```
-
-## Usage
-
-Each folder in the repository is structured to contain separate projects with their own specific examples:
-- **Basic CLI Operations**: Simple commands and configurations.
-- **Dependency Injection**: Demonstrates scoped and singleton services.
-- **Blazor Integration**: Shows how to embed CLI within a Blazor application.
+- [Command authoring guide](docs/v10.md): binding, middleware, help/completion, testing, and generated documentation.
+- [Installation and signing](docs/installers.md): quiet installers, publisher branding, native MSI/Burn, signing keys, and release policy.
+- [Independent distribution example](examples/05%20-%20DistributionRecipe/README.md): signed publication, install, native module dispatch, update, and failure recovery without a company account.
+- [Distribution protocol](docs/vnext-distribution.md): architecture and protocol details; consult executable tests and the installer guide for implemented behavior.
+- [Example publication workflow](examples/workflows/publish-static-registry.example.yml): copy and adapt to your own project.
 
 ## Contributing
 
-We welcome contributions from the community! Whether you're fixing a bug, improving documentation, or proposing a new feature, we appreciate your help. Please pull a request with your changes directly.
+Install the .NET 10 SDK and .NET 8 runtime, then run:
 
-### Pull Requests
+```console
+dotnet test src/CLI-Tools.sln -c Release
+```
 
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -am 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for clean-package tests, platform acceptance tests, repository layout, and troubleshooting. Contributions may improve code, documentation, accessibility, tests, or examples. [SECURITY.md](SECURITY.md) describes vulnerability reporting and trust boundaries.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Special thanks to the .NET community for continuous support and feedback.
+[MIT](LICENSE). Publisher identity, branding, and the license of a product built with CLI Tools remain configurable by its author.

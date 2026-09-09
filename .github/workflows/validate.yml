@@ -1,0 +1,59 @@
+name: Validate supported platforms
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and test both frameworks and registry
+        run: dotnet test src/CLI-Tools.sln -c Release --logger trx --results-directory .artifacts/test-results
+      - name: Consume fresh packages and templates
+        run: python tests/package_consumer.py
+      - name: Signed install, update, failure and rollback acceptance
+        run: python "examples/05 - DistributionRecipe/acceptance.py"
+      - name: Generated installer safety regression tests
+        run: python tests/bootstrap_safety.py
+      - name: Native AOT smoke
+        shell: pwsh
+        run: |
+          $osName = if ($IsWindows) { 'win' } elseif ($IsMacOS) { 'osx' } else { 'linux' }
+          $arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()
+          $rid = "$osName-$arch"
+          dotnet publish tests/CommandLineInterface.AotSmoke/CommandLineInterface.AotSmoke.csproj -c Release -r $rid --self-contained true -o .artifacts/aot
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $binary = if ($IsWindows) { '.artifacts/aot/CommandLineInterface.AotSmoke.exe' } else { './.artifacts/aot/CommandLineInterface.AotSmoke' }
+          & $binary hello Ada --count 1
+          exit $LASTEXITCODE
+      - name: Install free Windows build tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet tool install wix --version 4.0.6 --tool-path .tools
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./.tools/wix.exe extension add WixToolset.Bal.wixext/4.0.6
+          exit $LASTEXITCODE
+      - name: Windows quiet install, repair and uninstall
+        if: runner.os == 'Windows'
+        run: python tests/windows_installer.py --install
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-${{ matrix.os }}
+          path: .artifacts
+          if-no-files-found: ignore

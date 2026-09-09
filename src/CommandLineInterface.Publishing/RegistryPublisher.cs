@@ -11,9 +11,9 @@ public sealed class RegistryPublisher(HttpClient? client = null)
 
     public ValueTask<PublishResult> PublishCliAsync(Uri endpoint, string tenant, string product, string version,
         string runtimeIdentifier, string artifact, string channel = "stable", string? token = null,
-        CancellationToken cancellationToken = default) => PublishAsync(
+        CancellationToken cancellationToken = default, ArtifactSignature? signature = null) => PublishAsync(
             Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/releases/{Escape(version)}/{Escape(runtimeIdentifier)}?channel={Escape(channel)}"),
-            artifact, token, cancellationToken);
+            artifact, token, cancellationToken, signature);
 
     public ValueTask<PublishResult> PublishModuleAsync(Uri endpoint, string tenant, string id, string version,
         string artifact, string channel = "stable", string? description = null, string? token = null,
@@ -76,10 +76,16 @@ public sealed class RegistryPublisher(HttpClient? client = null)
         string reason, string? token = null, CancellationToken cancellationToken = default) =>
         PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/revocations?version={Escape(version ?? string.Empty)}&sha256={Escape(sha256 ?? string.Empty)}&reason={Escape(reason)}"), token, cancellationToken);
 
-    private async ValueTask<PublishResult> PublishAsync(Uri uri, string artifact, string? token, CancellationToken cancellationToken)
+    private async ValueTask<PublishResult> PublishAsync(Uri uri, string artifact, string? token, CancellationToken cancellationToken, ArtifactSignature? signature = null)
     {
+        if (signature is not null) await signature.VerifyAsync(artifact, cancellationToken);
         await using var stream = File.OpenRead(artifact);
         using var request = new HttpRequestMessage(HttpMethod.Put, uri) { Content = new StreamContent(stream) };
+        if (signature is not null)
+        {
+            request.Headers.Add("X-CLI-Signing-Key", signature.KeyId);
+            request.Headers.Add("X-CLI-Signature", signature.Signature);
+        }
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

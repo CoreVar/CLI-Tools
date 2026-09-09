@@ -5,3 +5,8 @@
 .vs
 bin
 obj
+.tools/
+.artifacts/
+*.private.pem
+
+.wix/

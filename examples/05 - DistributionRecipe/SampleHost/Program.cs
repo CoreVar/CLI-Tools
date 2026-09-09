@@ -32,11 +32,10 @@ await CliApp.RunAsync(cli => cli.Version(settings.Version)
             var client = new ReleaseCatalogClient();
             var catalog = await client.LoadAsync(current.Catalog, context.CancellationToken);
             var release = ReleaseCatalogClient.Resolve(catalog, current.Channel);
-            var coordinator = new ReleaseSetupCoordinator(new DirectUpdater(paths, client, new ArtifactVerifier()));
+            var coordinator = new ReleaseSetupCoordinator(new DirectUpdater(paths, client, new ArtifactVerifier(JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "publisher-keys.json"))), requireSignature: true)));
             await coordinator.UpdateAndVerifyAsync(current, async (updated, token) =>
             {
                 var executable = Path.Combine(paths.Version(updated.Version), OperatingSystem.IsWindows() ? "sample-cli.exe" : "sample-cli");
-                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(executable, (UnixFileMode)0x1ED);
                 var start = new ProcessStartInfo(executable) { UseShellExecute = false };
                 start.ArgumentList.Add("setup");
                 start.Environment["COREVAR_CLI_HOME"] = root;
