@@ -19,5 +19,5 @@
     <ProjectReference Include="..\CommandLineInterface\CommandLineInterface.csproj" />
     <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
-  <ItemGroup><Compile Include="../Shared/InstallationFiles.cs" Link="IO/InstallationFiles.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Shared/InstallationFiles.cs" Link="IO/InstallationFiles.cs" /><Compile Include="../Shared/PortableUriJsonConverter.cs" Link="IO/PortableUriJsonConverter.cs" /></ItemGroup>
 </Project>

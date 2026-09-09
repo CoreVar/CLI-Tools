@@ -15,7 +15,7 @@ def save_logs():
         if source.is_file(): shutil.copyfile(source, destination/filename)
     for secret in work.glob('*.private.pem'): secret.unlink(missing_ok=True)
 
-tool = repo/'src/CoreVar.CliTools/bin/Release/net10.0/cli-tools.dll'
+tool = work/'tools/cli-tools.dll'
 rid = ('win' if os.name == 'nt' else 'osx' if platform.system() == 'Darwin' else 'linux') + '-' + {'amd64':'x64','x86_64':'x64','aarch64':'arm64','arm64':'arm64'}[platform.machine().lower()]
 extension = '.exe' if os.name == 'nt' else ''
 catalog_file = work/'catalog.json'
@@ -47,6 +47,7 @@ def publish(version, bad_entry=None, **artifact_fields):
     catalog_file.write_text(json.dumps(value))
     return value
 
+run('dotnet', 'publish', repo/'src/CoreVar.CliTools/CoreVar.CliTools.csproj', '-c', 'Release', '-f', 'net10.0', '-o', tool.parent)
 scripts = work/'scripts'
 generate(scripts)
 publish('1.0.0')

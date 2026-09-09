@@ -8,7 +8,7 @@ if os.name != 'nt': raise SystemExit('Windows is required')
 if args.install and os.getenv('CI', '').lower() != 'true': raise SystemExit('--install requires an isolated CI runner (CI=true)')
 repo = pathlib.Path(__file__).resolve().parents[1]
 work = repo/'.artifacts'/'native-installer'; work.mkdir(parents=True, exist_ok=True)
-tool = repo/'src/CoreVar.CliTools/bin/Release/net10.0/cli-tools.dll'
+tool = work/'payload/cli-tools.dll'
 
 def run(*command, allowed=(0,)):
     result = subprocess.run(list(map(str, command)), cwd=repo, text=True, capture_output=True, timeout=300, creationflags=subprocess.CREATE_NO_WINDOW)

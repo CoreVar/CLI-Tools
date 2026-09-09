@@ -4,7 +4,8 @@ using System.Text.Json.Serialization;
 namespace CoreVar.CommandLineInterface.Modules;
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, WriteIndented = true,
-    PropertyNameCaseInsensitive = true, UseStringEnumConverter = true)]
+    PropertyNameCaseInsensitive = true, UseStringEnumConverter = true,
+    Converters = new[] { typeof(CoreVar.CommandLineInterface.IO.PortableUriJsonConverter) })]
 [JsonSerializable(typeof(ModuleManifest))]
 [JsonSerializable(typeof(ModuleInstallationPointer))]
 [JsonSerializable(typeof(ModuleCatalog))]
