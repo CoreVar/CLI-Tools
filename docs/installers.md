@@ -1,5 +1,7 @@
 # Installation and signing
 
+For multi-step setup, see [resumable installation](resumable-installation.md): checkpoint identity, idempotent reconciliation, protected credential handoff, diagnostics, and install/update/uninstall callbacks.
+
 The core library, local ZIP packaging, static publication, and unsigned development installers need no account, hosted registry, or paid signing service. Signing is configured by each publisher. CoreVar does not sign other publishers' products.
 
 ## Portable archive signing
