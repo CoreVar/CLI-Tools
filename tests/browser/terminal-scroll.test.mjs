@@ -49,7 +49,7 @@ for (const nested of [false, true]) for (const width of [390, 1280]) {
       await page.goto(origin);
       await page.setContent(`<style>
         body{margin:0;height:1200px} #wrapper{width:100%;box-sizing:border-box}
-        #root{font:14px/20px monospace;box-sizing:border-box;overflow-anchor:none}
+        #root{font:14px/20px monospace;box-sizing:border-box}
         #output>div{height:20px} input{height:22px}
         ${nested ? '#wrapper{height:240px;overflow:auto}#root{overflow:visible;min-height:100%}' : '#root{height:240px;overflow:auto}'}
       </style><div id="wrapper"><div id="root"><div id="output"></div><input class="terminal-input"></div></div><button id="elsewhere">Elsewhere</button>`);
@@ -115,6 +115,13 @@ for (const nested of [false, true]) for (const width of [390, 1280]) {
       await settle(page); await assertBottom(page);
       await page.evaluate(() => { window.scroller.style.height = '160px'; });
       await settle(page); await assertBottom(page);
+      await page.evaluate(() => { window.scroller.style.height = '400px'; });
+      await settle(page); await append(page); await assertBottom(page);
+      await page.evaluate(() => {
+        const output = document.querySelector('#output');
+        while (output.childElementCount > 30) output.firstChild.remove();
+      });
+      await settle(page); await append(page); await assertBottom(page);
 
       await page.evaluate(() => { window.handle.dispose(); window.finishCommand(); });
       const disposed = (await position(page)).top;

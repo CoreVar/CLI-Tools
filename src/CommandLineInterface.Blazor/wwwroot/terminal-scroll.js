@@ -33,8 +33,9 @@ export function followTerminalOutput(root) {
   const resume = () => { following = true; schedule(); };
   const onScroll = () => {
     const top = scroller.scrollTop;
-    if (top < previousTop - 1) pause();
-    else if (atBottom() && root.contains(document.activeElement) && !selectedOutput()) following = true;
+    // Resizing or trimming scrollback can lower scrollTop while still at the bottom.
+    if (atBottom() && root.contains(document.activeElement) && !selectedOutput()) following = true;
+    else if (top < previousTop - 1) pause();
     previousTop = top;
   };
   const onWheel = event => { if (event.deltaY < 0) pause(); };
