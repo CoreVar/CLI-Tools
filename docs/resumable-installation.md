@@ -34,7 +34,9 @@ The caller owns the byte buffer and should clear it in `finally` with `Cryptogra
 
 ## Acceptance evidence — 2026-09-10
 
-Status: **implemented and locally verified**, not live CoreOne or release qualified.
+Status: **implemented and cross-platform CI verified**, not live CoreOne or release qualified.
+
+Implementation commit: `bba914bf17d3ce499ef589cf8a6cadcf96b1f41b`. [GitHub run 34454140365](https://github.com/CoreVar/CLI-Tools/actions/runs/34454140365) passed browser, Ubuntu, macOS and Windows jobs, including signed distribution acceptance, native AOT, and Windows install/repair/upgrade/uninstall. The new Unix checkpoint-link case ran on Ubuntu/macOS. See [the acceptance ledger](coreone-installer-acceptance.json) for the pinned source and remaining integration gates.
 
 The first acceptance pass covered nine new tests on both .NET 8 and .NET 10 on Windows. Final local solution validation passed 82 tests on each framework and eight registry tests. Later coverage adds re-verification, diagnostic redaction, and a Unix-only checkpoint-link regression (not exercised on Windows):
 
