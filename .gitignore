@@ -10,3 +10,4 @@ obj
 *.private.pem
 
 .wix/
+node_modules/

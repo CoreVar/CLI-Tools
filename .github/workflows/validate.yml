@@ -4,6 +4,19 @@ on:
 permissions:
   contents: read
 jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm --dir tests/browser install --frozen-lockfile
+      - run: pnpm --dir tests/browser exec playwright install --with-deps chromium
+      - name: Browser terminal streaming and scroll interruption
+        run: pnpm --dir tests/browser test
   test:
     strategy:
       fail-fast: false

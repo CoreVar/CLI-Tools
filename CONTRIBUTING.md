@@ -18,6 +18,16 @@ python "examples/05 - DistributionRecipe/acceptance.py"
 
 The acceptance scripts create isolated temporary directories, print their locations, and retain command logs. The distribution fixture binds a registry to loopback, uses temporary credentials, and leaves the user's PATH unchanged. Its signing keys are test fixtures, not release identities.
 
+Browser terminal regressions run in Chromium with Node.js 24 and pnpm 11.19.0:
+
+```console
+pnpm --dir tests/browser install --frozen-lockfile
+pnpm --dir tests/browser exec playwright install chromium
+pnpm --dir tests/browser test
+```
+
+These tests cover streamed output in standalone and portal scroll containers at mobile and desktop widths. Submitting a command follows its output immediately; scrolling up, selecting output, or moving focus away pauses following. Returning to the bottom or submitting another command resumes it, without stealing focus when a command completes.
+
 To build local NuGet packages:
 
 ```console

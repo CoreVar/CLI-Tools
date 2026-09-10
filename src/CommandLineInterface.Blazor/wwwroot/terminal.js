@@ -1,7 +1,8 @@
+import { followTerminalOutput } from './terminal-scroll.js';
+
 export function initializeTerminal(root, input, dotnet, autoFocus) {
-  let stickToBottom = true;
-  const scrollToBottom = () => { if (stickToBottom) root.scrollTop = root.scrollHeight; };
-  const updateStickiness = () => { stickToBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 32; };
+  const output = followTerminalOutput(root);
+  let disposed = false;
   const focus = () => { if (!input.disabled) input.focus({ preventScroll: true }); };
   const setInput = (value, selectionStart) => {
     input.value = value;
@@ -9,9 +10,9 @@ export function initializeTerminal(root, input, dotnet, autoFocus) {
     const caret = selectionStart ?? value.length;
     input.setSelectionRange(caret, caret);
   };
-  const onPointerDown = event => {
-    if (event.target === input) return;
-    requestAnimationFrame(() => { const selection = window.getSelection(); if (!selection || selection.isCollapsed) focus(); });
+  const onClick = event => {
+    if (event.target.closest('input, button, a, select, textarea')) return;
+    requestAnimationFrame(() => { const selection = window.getSelection(); if (!disposed && (!selection || selection.isCollapsed)) focus(); });
   };
   const onKeyDown = async event => {
     const key = event.key;
@@ -32,22 +33,24 @@ export function initializeTerminal(root, input, dotnet, autoFocus) {
       (control && ['l', 'u'].includes(key.toLowerCase()));
     if (!handled) return;
     event.preventDefault();
+    if (key === 'Enter') output.resume();
     await dotnet.invokeMethodAsync('HandleTerminalKey', key.length === 1 ? key.toLowerCase() : key, control, event.shiftKey);
-    requestAnimationFrame(() => { focus(); input.setSelectionRange(input.value.length, input.value.length); scrollToBottom(); });
+    requestAnimationFrame(() => {
+      if (disposed || document.activeElement !== input) return;
+      input.setSelectionRange(input.value.length, input.value.length);
+      output.schedule();
+    });
   };
   const onCopy = async event => {
     const pageSelection = window.getSelection();
     if (input.selectionStart !== input.selectionEnd || (pageSelection && !pageSelection.isCollapsed)) return;
     event.preventDefault();
     await dotnet.invokeMethodAsync('HandleTerminalKey', 'c', true, false);
-    requestAnimationFrame(() => { focus(); scrollToBottom(); });
+    output.schedule();
   };
-  root.addEventListener('scroll', updateStickiness, { passive: true });
-  root.addEventListener('pointerdown', onPointerDown);
+  root.addEventListener('click', onClick);
   input.addEventListener('keydown', onKeyDown);
   input.addEventListener('copy', onCopy);
-  const observer = new MutationObserver(() => requestAnimationFrame(scrollToBottom));
-  observer.observe(root, { childList: true, subtree: true, characterData: true });
   const reportSize = () => {
     const style = getComputedStyle(root);
     const probe = document.createElement('span');
@@ -58,14 +61,14 @@ export function initializeTerminal(root, input, dotnet, autoFocus) {
     const rows = Math.max(1, Math.floor(root.clientHeight / Math.max(1, cell.height)));
     dotnet.invokeMethodAsync('HandleTerminalResize', columns, rows);
   };
-  const resizeObserver = new ResizeObserver(() => { scrollToBottom(); reportSize(); });
+  const resizeObserver = new ResizeObserver(reportSize);
   resizeObserver.observe(root);
   reportSize();
-  if (autoFocus) requestAnimationFrame(() => { focus(); scrollToBottom(); });
+  if (autoFocus) requestAnimationFrame(() => { if (!disposed) { focus(); output.schedule(); } });
   return { dispose() {
-    observer.disconnect(); resizeObserver.disconnect();
-    root.removeEventListener('scroll', updateStickiness);
-    root.removeEventListener('pointerdown', onPointerDown);
+    disposed = true;
+    output.dispose(); resizeObserver.disconnect();
+    root.removeEventListener('click', onClick);
     input.removeEventListener('keydown', onKeyDown);
     input.removeEventListener('copy', onCopy);
   }};
