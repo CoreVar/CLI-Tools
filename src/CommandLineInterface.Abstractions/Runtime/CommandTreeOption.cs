@@ -11,6 +11,13 @@ namespace CoreVar.CommandLineInterface.Runtime;
 
 public class CommandTreeOption(string name, bool acceptsValue)
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
     public string Name => name;
 
     public string? Description { get; set; }

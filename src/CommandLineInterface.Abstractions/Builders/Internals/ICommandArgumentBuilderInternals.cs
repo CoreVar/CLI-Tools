@@ -9,6 +9,12 @@ public interface ICommandArgumentBuilderInternals : IBuilderInternals
 
     GetArgumentValueDelegate GetValueHandler { get; set; }
 
+    bool PromptIfMissing { get; set; }
+
+    string? PromptLabel { get; set; }
+
+    bool Secret { get; set; }
+
     bool IsRequired { get; set; }
 
     object? DefaultValue { get; set; }

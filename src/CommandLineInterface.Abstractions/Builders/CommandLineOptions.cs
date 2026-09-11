@@ -13,6 +13,9 @@ public class CommandLineOptions
 
     public StringComparer OptionComparer { get; init; } = StringComparer.Ordinal;
 
+    /// <summary>Host policy allowing interactive prompts. Per-invocation policy can further restrict this.</summary>
+    public bool EnablePrompts { get; set; } = true;
+
     public bool IsReplEnabled { get; set; }
 
     public string? ReplPrompt { get; set; }

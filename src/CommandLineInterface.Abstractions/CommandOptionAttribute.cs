@@ -9,6 +9,13 @@ namespace CoreVar.CommandLineInterface;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter, AllowMultiple = false)]
 public class CommandOptionAttribute(string name) : Attribute
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
 
     public string Name => name;
 

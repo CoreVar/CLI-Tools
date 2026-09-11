@@ -5,6 +5,8 @@ public sealed record ModuleInvocationContext(IServiceProvider Services, IConsole
 {
     public IModuleCredentialProvider? CredentialProvider { get; init; }
     public IReadOnlyDictionary<string, string?> Environment { get; init; } = new Dictionary<string, string?>();
+    /// <summary>Explicit ordinary line input. This is not a secure interactive prompt protocol.
+    /// Without a provider, child stdin is closed rather than inheriting the terminal.</summary>
     public Func<CancellationToken, ValueTask<string?>>? StandardInput { get; init; }
     public int MaximumOutputCharacters { get; init; } = 1_000_000;
 }

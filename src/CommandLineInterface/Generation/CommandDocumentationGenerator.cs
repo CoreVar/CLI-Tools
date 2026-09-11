@@ -35,7 +35,7 @@ public static class CommandDocumentationGenerator
                 output.Append("- `").Append(option.Name).Append('`');
                 if (option.Aliases?.Count > 0) output.Append(" (`").Append(string.Join("`, `", option.Aliases)).Append("`)");
                 output.Append(" — ").Append(option.Description ?? (option.IsRequired ? "Required." : "Optional."));
-                if (option.DefaultValue is not null) output.Append(" Default: `").Append(option.DefaultValue).Append("`.");
+                if (option.DefaultValue is not null && !option.Secret) output.Append(" Default: `").Append(option.DefaultValue).Append("`.");
                 output.AppendLine();
             }
         }

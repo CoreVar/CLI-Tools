@@ -23,6 +23,12 @@ public abstract class CommandOptionBuilder(string name, CommandLineOptions comma
 
     GetOptionValueDelegate ICommandOptionBuilderInternals.GetValueHandler { get; set; } = default!;
 
+    bool ICommandOptionBuilderInternals.PromptIfMissing { get; set; }
+
+    string? ICommandOptionBuilderInternals.PromptLabel { get; set; }
+
+    bool ICommandOptionBuilderInternals.Secret { get; set; }
+
     bool ICommandOptionBuilderInternals.IsRequired { get; set; }
 
     HashSet<string>? ICommandOptionBuilderInternals.Aliases { get; set; }

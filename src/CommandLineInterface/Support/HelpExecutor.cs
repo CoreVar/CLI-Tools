@@ -141,7 +141,7 @@ public class HelpExecutor(IServiceProvider serviceProvider, IApplicationContext 
     {
         var details = new List<string>();
         if (!string.IsNullOrWhiteSpace(option.Description)) details.Add(option.Description);
-        if (option.DefaultValue is not null) details.Add($"default: {option.DefaultValue}");
+        if (option.DefaultValue is not null && !option.Secret) details.Add($"default: {option.DefaultValue}");
         if (option.EnvironmentVariable is not null) details.Add($"env: {option.EnvironmentVariable}");
         if (option.ConfigurationKey is not null) details.Add($"config: {option.ConfigurationKey}");
         if (option.DeprecationMessage is not null) details.Add($"deprecated: {option.DeprecationMessage}");

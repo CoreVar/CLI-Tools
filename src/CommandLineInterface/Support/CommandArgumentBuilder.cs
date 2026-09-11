@@ -26,6 +26,12 @@ public class CommandArgumentBuilder<T>(string name, CommandLineOptions commandLi
 
     GetArgumentValueDelegate ICommandArgumentBuilderInternals.GetValueHandler { get; set; } = default!;
 
+    bool ICommandArgumentBuilderInternals.PromptIfMissing { get; set; }
+
+    string? ICommandArgumentBuilderInternals.PromptLabel { get; set; }
+
+    bool ICommandArgumentBuilderInternals.Secret { get; set; }
+
     bool ICommandArgumentBuilderInternals.IsRequired { get; set; }
 
     object? ICommandArgumentBuilderInternals.DefaultValue { get; set; }

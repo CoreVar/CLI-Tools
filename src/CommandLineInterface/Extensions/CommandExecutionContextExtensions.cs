@@ -26,14 +26,13 @@ public static partial class BuilderExtensions
         {
             if (!option.Option.GetValueHandler(context, option, out var value))
             {
-                // TODO: Report error
-                return default!;
+                throw new FormatException("Invalid option value.");
             }
             foreach (var validator in optionBuilderInternals.Validators)
             {
                 var message = validator(value);
                 if (message is not null)
-                    throw new ArgumentException(message, optionBuilderInternals.Name);
+                    throw new ArgumentException(optionBuilderInternals.Secret ? "Invalid secret option value." : message, optionBuilderInternals.Name);
             }
             return (T)value;
         }
@@ -46,13 +45,13 @@ public static partial class BuilderExtensions
 
         object? resolved = optionBuilderInternals.DefaultValue;
         if (fallback is not null && !ValueConverter.TryConvert(fallback, typeof(T), out resolved))
-            throw new FormatException($"'{fallback}' is not a valid value for option '{optionBuilderInternals.Name}'.");
+            throw new FormatException($"Invalid value for option '{optionBuilderInternals.Name}'.");
 
         foreach (var validator in optionBuilderInternals.Validators)
         {
             var message = validator(resolved);
             if (message is not null)
-                throw new ArgumentException(message, optionBuilderInternals.Name);
+                throw new ArgumentException(optionBuilderInternals.Secret ? "Invalid secret option value." : message, optionBuilderInternals.Name);
         }
 
         return resolved is null ? default! : (T)resolved;
@@ -192,14 +191,13 @@ public static partial class BuilderExtensions
         {
             if (!argument.Argument.GetValueHandler(context, argument, out var value))
             {
-                // TODO: Report error
-                return default!;
+                throw new FormatException("Invalid argument value.");
             }
             foreach (var validator in argumentBuilderInternals.Validators)
             {
                 var message = validator(value);
                 if (message is not null)
-                    throw new ArgumentException(message, argumentBuilderInternals.Name);
+                    throw new ArgumentException(argumentBuilderInternals.Secret ? "Invalid secret argument value." : message, argumentBuilderInternals.Name);
             }
             return (T)value;
         }
@@ -209,7 +207,7 @@ public static partial class BuilderExtensions
         {
             var message = validator(resolved);
             if (message is not null)
-                throw new ArgumentException(message, argumentBuilderInternals.Name);
+                throw new ArgumentException(argumentBuilderInternals.Secret ? "Invalid secret argument value." : message, argumentBuilderInternals.Name);
         }
 
         return resolved is null ? default! : (T)resolved;

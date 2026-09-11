@@ -155,6 +155,9 @@ partial class ComponentSourceGenerator
                                 if (named.Key == "EnvironmentVariable") commandOption.EnvironmentVariable = (string?)named.Value.Value;
                                 else if (named.Key == "ConfigurationKey") commandOption.ConfigurationKey = (string?)named.Value.Value;
                                 else if (named.Key == "Global") commandOption.IsGlobal = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") commandOption.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") commandOption.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") commandOption.Secret = (bool)named.Value.Value!;
                                 else if (named.Key == "Hidden") commandOption.IsHidden = (bool)named.Value.Value!;
                                 else if (named.Key == "Deprecated") commandOption.DeprecationMessage = (string?)named.Value.Value;
                                 else if (named.Key == "Completions")
@@ -169,7 +172,7 @@ partial class ComponentSourceGenerator
                             {
                                 foreach (var namedArgument in attribute.NamedArguments)
                                     if (namedArgument.Key == "Index")
-                                        index = (int)attribute.NamedArguments[0].Value.Value!;
+                                        index = (int)namedArgument.Value.Value!;
                             }
 
                             if (attributeName is not null)
@@ -184,6 +187,9 @@ partial class ComponentSourceGenerator
                                 foreach (var named in attribute.NamedArguments)
                                 {
                                     if (named.Key == "Variadic") commandArgument.IsVariadic = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") commandArgument.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") commandArgument.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") commandArgument.Secret = (bool)named.Value.Value!;
                                     else if (named.Key == "Completions")
                                         foreach (var value in named.Value.Values) commandArgument.Completions.Add((string)value.Value!);
                                 }
@@ -294,6 +300,9 @@ partial class ComponentSourceGenerator
                             if (named.Key == "EnvironmentVariable") option.EnvironmentVariable = (string?)named.Value.Value;
                             else if (named.Key == "ConfigurationKey") option.ConfigurationKey = (string?)named.Value.Value;
                             else if (named.Key == "Global") option.IsGlobal = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") option.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") option.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") option.Secret = (bool)named.Value.Value!;
                             else if (named.Key == "Hidden") option.IsHidden = (bool)named.Value.Value!;
                             else if (named.Key == "Deprecated") option.DeprecationMessage = (string?)named.Value.Value;
                             else if (named.Key == "Completions") foreach (var value in named.Value.Values) option.Completions.Add((string)value.Value!);
@@ -313,6 +322,9 @@ partial class ComponentSourceGenerator
                         {
                             if (named.Key == "Index") argument.Index = (int)named.Value.Value!;
                             else if (named.Key == "Variadic") argument.IsVariadic = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") argument.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") argument.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") argument.Secret = (bool)named.Value.Value!;
                             else if (named.Key == "Completions") foreach (var value in named.Value.Values) argument.Completions.Add((string)value.Value!);
                         }
                     }

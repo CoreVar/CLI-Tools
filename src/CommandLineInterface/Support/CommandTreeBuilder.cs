@@ -88,6 +88,9 @@ public class CommandTreeBuilder
         {
             GetValueHandler = builderInternals.GetValueHandler,
             IsRequired = builderInternals.IsRequired,
+            PromptIfMissing = builderInternals.PromptIfMissing,
+            PromptLabel = builderInternals.PromptLabel,
+            Secret = builderInternals.Secret,
             Aliases = builderInternals.Aliases,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
@@ -99,7 +102,7 @@ public class CommandTreeBuilder
             ,IsHidden = builderInternals.IsHidden
             ,DeprecationMessage = builderInternals.DeprecationMessage
             ,Validators = [.. builderInternals.Validators]
-            ,Completions = [.. builderInternals.Completions]
+            ,Completions = builderInternals.Secret ? [] : [.. builderInternals.Completions]
         };
 
         return option;
@@ -125,13 +128,16 @@ public class CommandTreeBuilder
         {
             GetValueHandler = builderInternals.GetValueHandler,
             IsRequired = builderInternals.IsRequired,
+            PromptIfMissing = builderInternals.PromptIfMissing,
+            PromptLabel = builderInternals.PromptLabel,
+            Secret = builderInternals.Secret,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
             Description = builderInternals.Description
             ,DefaultValue = builderInternals.DefaultValue
             ,IsVariadic = builderInternals.IsVariadic
             ,Validators = [.. builderInternals.Validators]
-            ,Completions = [.. builderInternals.Completions]
+            ,Completions = builderInternals.Secret ? [] : [.. builderInternals.Completions]
         };
 
         return argument;

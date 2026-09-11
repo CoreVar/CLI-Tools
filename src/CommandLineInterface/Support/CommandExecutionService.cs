@@ -84,7 +84,9 @@ public class CommandExecutionService(
                     continue;
                 }
 
-                _replHistory.Add(currentLine);
+                var historyContext = CommandTreeBuilder.Load(commandTree, ArgumentUtilities.ExpandArguments(ArgumentUtilities.ParseArguments(currentLine)));
+                if (!CommandPromptBinding.HasSecrets(CommandTreeHelpers.GetExecutingCommand(historyContext.Root)))
+                    _replHistory.Add(currentLine);
                 if (_replHistory.Count > Math.Max(1, options.ReplHistoryLimit))
                     _replHistory.RemoveAt(0);
 
@@ -145,6 +147,7 @@ public class CommandExecutionService(
         }
 
         CommandTreeElementContext? treeElementContext = CommandTreeHelpers.GetExecutingCommand(commandTreeContext.Root);
+        commandExecutionContext.HasSecretInput = CommandPromptBinding.HasSecrets(treeElementContext);
         if (treeElementContext.HasHelpOption)
         {
             await helpExecutor.ShowHelp(commandTreeContext);
@@ -155,20 +158,12 @@ public class CommandExecutionService(
         {
             commandExecutionContext.Result = options.ValidationErrorExitCode;
             var suggestion = options.EnableSuggestions ? FindClosest(unknown, candidates) : null;
-            await consoleControl.WriteErrorLine(suggestion is null
+            await consoleControl.WriteErrorLine(commandExecutionContext.HasSecretInput ? "Unknown command or option." : suggestion is null
                 ? $"Unknown command or option '{unknown}'."
                 : $"Unknown command or option '{unknown}'. Did you mean '{suggestion}'?");
             return;
         }
 
-
-        var validationResults = CommandTreeHelpers.Validate(commandTreeContext);
-        foreach (var validationResult in validationResults)
-        {
-            commandExecutionContext.Result = options.ValidationErrorExitCode;
-            await consoleControl.WriteErrorLine(validationResult.Message);
-            return;
-        }
 
         var element = treeElementContext.Element;
         if (element.ExecuteDelegate is not null)
@@ -183,6 +178,14 @@ public class CommandExecutionService(
                 ((ICommandExecutionContextInternals)commandExecutionContext).CancellationToken =
                     linkedCancellation?.Token ?? applicationLifetime.ApplicationStopping;
 
+                await CommandPromptBinding.FillAsync(treeElementContext, commandExecutionContext);
+                foreach (var validationResult in CommandTreeHelpers.Validate(commandTreeContext))
+                {
+                    commandExecutionContext.Result = options.ValidationErrorExitCode;
+                    await consoleControl.WriteErrorLine(commandExecutionContext.HasSecretInput ? "Command input validation failed." : validationResult.Message);
+                    return;
+                }
+
                 if (element.DeprecationMessage is not null)
                     await consoleControl.WriteErrorLine($"Warning: {element.DeprecationMessage}");
 
@@ -192,7 +195,7 @@ public class CommandExecutionService(
                     if (!result.IsValid)
                     {
                         commandExecutionContext.Result = options.ValidationErrorExitCode;
-                        await consoleControl.WriteErrorLine(result.Message ?? "Command validation failed.");
+                        await consoleControl.WriteErrorLine(commandExecutionContext.HasSecretInput ? "Command validation failed." : result.Message ?? "Command validation failed.");
                         return;
                     }
                 }
@@ -208,16 +211,21 @@ public class CommandExecutionService(
 
                 await pipeline(commandExecutionContext);
             }
-            catch (OperationCanceledException) when (commandExecutionContext.CancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
                 commandExecutionContext.Result = options.CancellationExitCode;
+            }
+            catch (CommandPromptException)
+            {
+                commandExecutionContext.Result = options.ValidationErrorExitCode;
+                await consoleControl.WriteErrorLine(new CommandPromptException().Message);
             }
             catch (Exception ex)
             {
                 if (commandExecutionContext.Result == 0)
                     commandExecutionContext.Result = options.CommandErrorExitCode;
 
-                await consoleControl.WriteErrorLine($"Error executing command '{CommandTreeHelpers.GetCommandName(services, commandTreeContext)}': {ex.Message}");
+                await consoleControl.WriteErrorLine($"Error executing command '{CommandTreeHelpers.GetCommandName(services, commandTreeContext)}': {(commandExecutionContext.HasSecretInput ? "Command failed; sensitive input details omitted." : ex.Message)}");
             }
         }
         else
@@ -302,19 +310,24 @@ public class CommandExecutionService(
             await _executionTask.ConfigureAwait(false);
     }
 
-    public async ValueTask<int> Execute(params string[] args)
+    public ValueTask<int> Execute(params string[] args) => Execute(new CommandExecutionOptions(), args);
+
+    public async ValueTask<int> Execute(CommandExecutionOptions executionOptions, params string[] args)
     {
+        ArgumentNullException.ThrowIfNull(executionOptions);
         await using var serviceScope = services.CreateAsyncScope();
         var context = serviceScope.ServiceProvider.GetRequiredService<CommandExecutionContext>();
         var contextInternals = (ICommandExecutionContextInternals)context;
         contextInternals.Arguments = args;
+        context.EnablePrompts = executionOptions.EnablePrompts;
         var commandTreeContextState = serviceScope.ServiceProvider.GetRequiredService<CommandTreeContextState>();
         commandTreeContextState.CommandTreeContext = CommandTreeBuilder.Load(commandTree, args);
 
         await _executionSemaphore.WaitAsync();
         try
         {
-            await consoleControl.WriteLine(ArgumentUtilities.ConvertToArgumentsString(args));
+            await consoleControl.WriteLine(CommandPromptBinding.HasSecrets(CommandTreeHelpers.GetExecutingCommand(commandTreeContextState.CommandTreeContext.Root))
+                ? "[Command with sensitive inputs]" : ArgumentUtilities.ConvertToArgumentsString(args));
             await ExecuteCommand(commandTreeContextState.CommandTreeContext, context);
 
             if (appContext.IsReplMode)
@@ -343,7 +356,8 @@ public class CommandExecutionService(
             commandTreeContextState.CommandTreeContext = CommandTreeBuilder.Load(commandTree, args);
 
             await WritePrompt();
-            await consoleControl.WriteLine(ArgumentUtilities.ConvertToArgumentsString(args));
+            await consoleControl.WriteLine(CommandPromptBinding.HasSecrets(CommandTreeHelpers.GetExecutingCommand(commandTreeContextState.CommandTreeContext.Root))
+                ? "[Command with sensitive inputs]" : ArgumentUtilities.ConvertToArgumentsString(args));
             await ExecuteCommand(commandTreeContextState.CommandTreeContext, context);
 
             if (queuedItem.Callback is not null)

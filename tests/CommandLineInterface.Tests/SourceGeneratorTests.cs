@@ -18,6 +18,9 @@ public class SourceGeneratorTests
         var arguments = Assert.IsType<List<CommandTreeArgument>>(command.Arguments);
         Assert.Equal(["first", "second"], arguments.Select(argument => argument.Name));
         Assert.True(arguments[0].IsRequired);
+        Assert.True(arguments[0].PromptIfMissing);
+        Assert.Equal("First value", arguments[0].PromptLabel);
+        Assert.True(arguments[0].Secret);
         Assert.False(arguments[1].IsRequired);
         Assert.NotNull(command.Options);
         Assert.False(command.Options!["output"].IsRequired); // alternate sources make the CLI token optional
@@ -44,6 +47,9 @@ public class SourceGeneratorTests
 
         Assert.Contains(command.Arguments!, argument => argument.Name == "name");
         Assert.Contains("--times", command.Options!.Keys);
+        Assert.True(command.Options["--times"].PromptIfMissing);
+        Assert.Equal("Times", command.Options["--times"].PromptLabel);
+        Assert.True(command.Options["--times"].Secret);
     }
 }
 
@@ -53,7 +59,7 @@ public class GeneratedMetadataComponent : CommandLineComponent
     [CommandArgument("second", Index = 1, Variadic = true, Completions = ["tail"]), Optional]
     public string Second { get; set; } = "fallback";
 
-    [CommandArgument("first", Index = 0), Required]
+    [CommandArgument("first", PromptIfMissing = true, PromptLabel = "First value", Secret = true, Index = 0), Required]
     public string? First { get; set; }
 
     [CommandOption("output", EnvironmentVariable = "CLI_OUTPUT", ConfigurationKey = "Generated:Output", Global = true, Completions = ["json", "text"]), CommandOptionAlias("o"), Required]
@@ -68,7 +74,7 @@ public partial class GeneratedMetadataContext : ComponentContext;
 [CommandName("signature")]
 public sealed class SignatureComponent : CommandLineComponent
 {
-    public Task ExecuteAsync(string name, [CommandOption("--times")] int times, CancellationToken cancellationToken)
+    public Task ExecuteAsync(string name, [CommandOption("--times", PromptIfMissing = true, PromptLabel = "Times", Secret = true)] int times, CancellationToken cancellationToken)
         => Task.CompletedTask;
 }
 

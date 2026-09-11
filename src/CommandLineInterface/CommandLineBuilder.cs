@@ -88,6 +88,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         hostBuilder.Services
             .AddSingleton(options)
             .AddSingleton<IConsoleControl, NativeConsoleControl>()
+            .AddScoped<ICommandPromptService, NativeCommandPromptService>()
             .AddSingleton<IElevationService, ProcessElevationService>()
             .AddSingleton<CommandExecutionService>()
             .AddSingleton<ICommandExecutor>(sp => sp.GetRequiredService<CommandExecutionService>())
@@ -105,9 +106,9 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         else
         {
             commandTree = CommandTreeBuilder.Build(this);
-            var context = CommandTreeBuilder.Load(commandTree, args);
             hostBuilder.Services
-                .AddSingleton(context);
+                .AddScoped(_ => new CommandTreeContextState { CommandTreeContext = CommandTreeBuilder.Load(commandTree, args) })
+                .AddScoped(sp => sp.GetRequiredService<CommandTreeContextState>().CommandTreeContext);
         }
 
         hostBuilder.Services.AddSingleton(commandTree);

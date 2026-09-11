@@ -16,7 +16,8 @@ internal static class ProcessRunner
         {
             UseShellExecute = false,
             WorkingDirectory = workingDirectory,
-            RedirectStandardInput = invocation?.StandardInput is not null,
+            // An external module must never inherit the host's interactive secret-input channel.
+            RedirectStandardInput = true,
             RedirectStandardOutput = invocation is not null,
             RedirectStandardError = invocation is not null
         };
@@ -24,6 +25,7 @@ internal static class ProcessRunner
         if (environment is not null)
             foreach (var item in environment) start.Environment[item.Key] = item.Value;
         using var process = Process.Start(start) ?? throw new InvalidOperationException($"Could not start '{executable}'.");
+        if (invocation?.StandardInput is null) process.StandardInput.Close();
         using var inputCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         try
         {

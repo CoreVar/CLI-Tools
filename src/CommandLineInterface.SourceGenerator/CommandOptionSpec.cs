@@ -4,6 +4,13 @@ namespace CoreVar.CommandLineInterface.SourceGenerator;
 
 public class CommandOptionSpec
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
     public string Name { get; set; } = default!;
 
     public string TargetPropertyName { get; set; } = default!;

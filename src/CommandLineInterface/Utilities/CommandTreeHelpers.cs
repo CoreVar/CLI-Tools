@@ -53,7 +53,7 @@ public static class CommandTreeHelpers
                 var argument = executeCommand.Element.Arguments[i];
                 if (!argument.IsRequired)
                     break;
-                if (executeCommand.Arguments is not null && i < executeCommand.Arguments.Count)
+                if (executeCommand.Arguments?.ContainsKey(argument.Name) == true)
                     continue;
                 yield return new CommandTreeValidationResult
                 {
@@ -86,6 +86,11 @@ public static class CommandTreeHelpers
                             if (argumentMap[optionPosition])
                                 throw new InvalidOperationException("Cannot map option, argument already mapped.");
                             argumentMap[optionPosition] = true;
+                            if (optionKvp.Value.Option.AcceptsValue && optionKvp.Value.Values.Count == 0)
+                            {
+                                yield return new CommandTreeValidationResult { Message = $"The option '{optionKvp.Key}' requires a value." };
+                                continue;
+                            }
                             for (var i = 0; i < optionKvp.Value.ValueLength; i++)
                             {
                                 var position = optionPosition + 1 + i;

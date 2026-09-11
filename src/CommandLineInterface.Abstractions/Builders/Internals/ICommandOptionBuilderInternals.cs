@@ -16,6 +16,12 @@ public interface ICommandOptionBuilderInternals : IBuilderInternals
 
     GetOptionValueDelegate GetValueHandler { get; set; }
 
+    bool PromptIfMissing { get; set; }
+
+    string? PromptLabel { get; set; }
+
+    bool Secret { get; set; }
+
     bool IsRequired { get; set; }
 
     HashSet<string>? Aliases { get; set; }

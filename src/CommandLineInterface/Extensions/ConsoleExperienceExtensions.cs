@@ -13,8 +13,7 @@ public static class ConsoleExperienceExtensions
         while (true)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            await context.Console.Write(prompt).ConfigureAwait(false);
-            var value = await context.Console.ReadLine().ConfigureAwait(false);
+            var value = await context.PromptAsync(new CommandPromptRequest(prompt) { AllowEmpty = true }).ConfigureAwait(false);
             if (validator is null || validator(value)) return value;
             await context.Console.WriteErrorLine(validationMessage ?? "Invalid value.").ConfigureAwait(false);
         }

@@ -219,6 +219,17 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.Append($@"{new string(' ', indent * 4)}var {argumentParameterName} = {commandParameterName}.Argument<{argument.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(argument.Name)})");
             indent++;
 
+            if (argument.PromptIfMissing)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.PromptIfMissing({(argument.PromptLabel is null ? "null" : CompilerSafeString(argument.PromptLabel))})");
+            }
+            if (argument.Secret)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Secret()");
+            }
+
             if (argument.Description is not null)
             {
                 sourceBuilder.AppendLine();
@@ -264,6 +275,17 @@ using Microsoft.Extensions.DependencyInjection;
             else
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}var {optionParameterName} = {commandParameterName}.Option<{option.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(option.Name)})");
             indent++;
+
+            if (option.PromptIfMissing)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.PromptIfMissing({(option.PromptLabel is null ? "null" : CompilerSafeString(option.PromptLabel))})");
+            }
+            if (option.Secret)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Secret()");
+            }
 
             if (option.Description is not null)
             {
