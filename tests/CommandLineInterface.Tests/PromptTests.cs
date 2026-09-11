@@ -161,6 +161,14 @@ public sealed class PromptTests
     private static ConsoleKeyInfo Key(char c) => new(c, ConsoleKey.A, false, false, false);
 
     [Fact]
+    public async Task Generated_global_context_and_void_handler_bind_prompt_answer()
+    {
+        var builder = Builder(new FakePrompt("synthetic-secret"));
+        builder.Components<GlobalPromptContext>();
+        Assert.Equal(0, (await builder.TestAsync("global-prompt")).ExitCode);
+    }
+
+    [Fact]
     public async Task Secret_commands_are_excluded_from_repl_history()
     {
         var builder = Builder(new FakePrompt());

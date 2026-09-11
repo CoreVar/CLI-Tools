@@ -97,7 +97,8 @@ using Microsoft.Extensions.DependencyInjection;
         var typeNamespace = componentContextSpec.Type.ContainingNamespace.ToDisplayString();
         var typeName = componentContextSpec.Type.Name;
 
-        sourceBuilder.AppendLine($@"namespace {typeNamespace};");
+        if (!componentContextSpec.Type.ContainingNamespace.IsGlobalNamespace)
+            sourceBuilder.AppendLine($@"namespace {typeNamespace};");
 
         sourceBuilder.Append($@"
 {new string(' ', indent * 4)}partial class {typeName}
@@ -371,7 +372,7 @@ using Microsoft.Extensions.DependencyInjection;
 
             sourceBuilder.Append(propertyAssignmentsBuilder);
 
-            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}await component.{componentSpec.ExecuteMethodName}({BuildExecuteArguments(componentSpec)});
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{(componentSpec.ExecuteReturnsVoid ? "" : "await ")}component.{componentSpec.ExecuteMethodName}({BuildExecuteArguments(componentSpec)});
 {new string(' ', indent * 4)}if ((object)component is IAsyncDisposable asyncDisposable)
 {new string(' ', (indent + 1) * 4)}await asyncDisposable.DisposeAsync();
 {new string(' ', indent * 4)}else if ((object)component is IDisposable disposable)

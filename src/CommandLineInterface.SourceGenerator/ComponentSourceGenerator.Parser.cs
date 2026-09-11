@@ -237,6 +237,7 @@ partial class ComponentSourceGenerator
                         if (!commandMethod.IsStatic && commandMethod.DeclaredAccessibility == Accessibility.Public)
                         {
                             componentSpec.ExecuteMethodName = commandMethod.Name;
+                            componentSpec.ExecuteReturnsVoid = commandMethod.ReturnsVoid;
                             ParseExecuteParameters(componentSpec, commandMethod);
                         }
                     }

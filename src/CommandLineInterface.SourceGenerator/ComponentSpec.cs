@@ -26,6 +26,7 @@ public class ComponentSpec
     public List<CommandArgumentSpec> Arguments { get; } = [];
 
     public string? ExecuteMethodName { get; set; }
+    public bool ExecuteReturnsVoid { get; set; }
 
     public int ExecuteParameterCount { get; set; }
 
