@@ -1,0 +1,65 @@
+{
+  "status": "passed",
+  "version": "10.1.0-dev.20260911.3",
+  "sourceCommit": "470c3430648c30247fe4d0e42faf7569eb19110e",
+  "published": false,
+  "frameworks": [
+    "net8.0",
+    "net10.0"
+  ],
+  "freshLockedCaches": true,
+  "sourceMapping": "CoreVar.* exclusively local package closure; other dependencies nuget.org",
+  "packages": [
+    {
+      "file": "CoreVar.CommandLineInterface.10.1.0-dev.20260911.3.nupkg",
+      "sha256": "abb8739e1bf9449605250f62cd9d3895671d75acd4eb432024c0f6ccc4adc46b"
+    },
+    {
+      "file": "CoreVar.CommandLineInterface.Abstractions.10.1.0-dev.20260911.3.nupkg",
+      "sha256": "d620cb24cd304fa269a66b697148681840a326d5cf8efa3801e03a61691508b2"
+    },
+    {
+      "file": "CoreVar.CommandLineInterface.Blazor.10.1.0-dev.20260911.3.nupkg",
+      "sha256": "c3fee9f2ac3702fb75a15a35095146a2a6895b13838ae9d32827cd33134c1d0f"
+    },
+    {
+      "file": "CoreVar.CommandLineInterface.Modules.10.1.0-dev.20260911.3.nupkg",
+      "sha256": "a1f94333481cda72a253abc4c5ba4b91827d5fdc51c09971f27a9b98a4e7243a"
+    }
+  ],
+  "frameworkTests": {
+    "net8.0": 103,
+    "net10.0": 103,
+    "failed": 0
+  },
+  "packageConsumerChecks": [
+    "Generated secret option binding in global namespace with synchronous handler",
+    "Original argv does not receive prompted secret",
+    "Native reader reports noninteractive for redirected consumer",
+    "Blazor terminal-scroll.js asset present",
+    "Downloaded package hashes match local originals",
+    "Repository commit metadata matches source"
+  ],
+  "coreMqReportedQualification": {
+    "version": "10.1.0-dev.20260911.1",
+    "nativeReaderChangedInFinalVersion": false,
+    "checks": [
+      "Windows PTY no character echo; synthetic broker authentication successful",
+      "Backspace correction authenticated",
+      "Ctrl+C cancelled without echo; saved connection checksum unchanged",
+      "Redirected missing input and --no-prompt fail immediately",
+      "Six new connect cases passed"
+    ],
+    "productSuite": {
+      "passed": 56,
+      "failed": 1,
+      "failure": "Reported pre-existing API coverage test for feedback and service revocation routes"
+    },
+    "finalVersionConsumerStatus": "Requested from CoreMQ owner; earlier PTY evidence is not represented as a run against final package hashes"
+  },
+  "supersededLocalArtifacts": {
+    "10.1.0-dev.20260911.1": "Initial native product qualification only",
+    "10.1.0-dev.20260911.2": "Standalone consumer failed on pre-existing global namespace / void handler generator bugs; never published"
+  },
+  "consumerLockSha256": "ffed7da92ada83dad0c97d4acb19606a0cee284e5d99d2f013ef1e87ee5d845e"
+}
