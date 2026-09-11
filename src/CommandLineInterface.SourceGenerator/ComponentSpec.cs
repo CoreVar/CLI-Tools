@@ -13,6 +13,12 @@ public class ComponentSpec
 
     public string? Description { get; set; }
 
+    public List<string> Aliases { get; } = [];
+
+    public bool IsHidden { get; set; }
+
+    public string? DeprecationMessage { get; set; }
+
     public List<ComponentSpec> NestedCommands { get; } = [];
 
     public List<CommandOptionSpec> Options { get; } = [];
@@ -20,6 +26,11 @@ public class ComponentSpec
     public List<CommandArgumentSpec> Arguments { get; } = [];
 
     public string? ExecuteMethodName { get; set; }
+    public bool ExecuteReturnsVoid { get; set; }
+
+    public int ExecuteParameterCount { get; set; }
+
+    public List<int> CancellationTokenParameters { get; } = [];
     
     public string? SetupHostBuilderMethodName { get; set; }
     

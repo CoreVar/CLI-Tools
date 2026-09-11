@@ -4,6 +4,13 @@ namespace CoreVar.CommandLineInterface.SourceGenerator;
 
 public class CommandArgumentSpec
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
 
     public string Name { get; set; } = default!;
 
@@ -16,4 +23,9 @@ public class CommandArgumentSpec
     public ITypeSymbol TargetPropertyType { get; set; } = default!;
 
     public bool IsRequired { get; internal set; }
+
+    public bool IsVariadic { get; set; }
+
+    public System.Collections.Generic.List<string> Completions { get; } = new();
+    public int ParameterIndex { get; set; } = -1;
 }

@@ -26,7 +26,21 @@ public class CommandArgumentBuilder<T>(string name, CommandLineOptions commandLi
 
     GetArgumentValueDelegate ICommandArgumentBuilderInternals.GetValueHandler { get; set; } = default!;
 
+    bool ICommandArgumentBuilderInternals.PromptIfMissing { get; set; }
+
+    string? ICommandArgumentBuilderInternals.PromptLabel { get; set; }
+
+    bool ICommandArgumentBuilderInternals.Secret { get; set; }
+
     bool ICommandArgumentBuilderInternals.IsRequired { get; set; }
+
+    object? ICommandArgumentBuilderInternals.DefaultValue { get; set; }
+
+    bool ICommandArgumentBuilderInternals.IsVariadic { get; set; }
+
+    List<Func<object?, string?>> ICommandArgumentBuilderInternals.Validators { get; } = [];
+
+    List<string> ICommandArgumentBuilderInternals.Completions { get; } = [];
 
     CommandLineOptions IBuilderInternals.CommandLineOptions => commandLineOptions;
 

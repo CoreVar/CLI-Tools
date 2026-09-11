@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>CoreVar.CommandLineInterface.Modules</RootNamespace>
+    <Title>CoreVar CLI Modules</Title>
+    <Authors>Jeff Scherrer</Authors>
+    <Company>CoreVar, LLC</Company>
+    <Description>Language-neutral modules, isolated runtimes, installation, and updates for CoreVar command-line applications.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CommandLineInterface\CommandLineInterface.csproj" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+  <ItemGroup><Compile Include="../Shared/InstallationFiles.cs" Link="IO/InstallationFiles.cs" /><Compile Include="../Shared/PortableUriJsonConverter.cs" Link="IO/PortableUriJsonConverter.cs" /></ItemGroup>
+</Project>

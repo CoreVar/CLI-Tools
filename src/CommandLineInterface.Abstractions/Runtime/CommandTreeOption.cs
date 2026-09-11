@@ -11,6 +11,13 @@ namespace CoreVar.CommandLineInterface.Runtime;
 
 public class CommandTreeOption(string name, bool acceptsValue)
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
     public string Name => name;
 
     public string? Description { get; set; }
@@ -28,4 +35,20 @@ public class CommandTreeOption(string name, bool acceptsValue)
     public List<Action<IHost>>? HostSetups { get; set; }
 
     public List<Action<IHostApplicationBuilder>>? HostBuilders { get; set; }
+
+    public object? DefaultValue { get; set; }
+
+    public string? EnvironmentVariable { get; set; }
+
+    public string? ConfigurationKey { get; set; }
+
+    public bool IsGlobal { get; set; }
+
+    public bool IsHidden { get; set; }
+
+    public string? DeprecationMessage { get; set; }
+
+    public List<Func<object?, string?>> Validators { get; set; } = [];
+
+    public List<string> Completions { get; set; } = [];
 }

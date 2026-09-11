@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CoreVar.$(MSBuildProjectName)</AssemblyName>
@@ -12,6 +12,7 @@
     <Description>The CoreVar.CommandLineInterface.Blazor library extends the powerful features of the CoreVar CLI framework into the Blazor environment, allowing developers to seamlessly integrate command-line interfaces within Blazor applications. This package provides custom Blazor components and services that facilitate the creation of interactive CLI tools, enabling real-time command execution and response within a web interface. It’s perfect for developers aiming to enhance their Blazor applications with dynamic CLI capabilities, improving user interaction and backend manageability.</Description>
     <Copyright>Copyright © 2024 CoreVar, LLC. All rights reserved.</Copyright>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -28,7 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.8" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +39,7 @@
 
   <ItemGroup>
     <Folder Include="Utilities\" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
 </Project>

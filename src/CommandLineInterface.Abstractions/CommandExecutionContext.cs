@@ -20,10 +20,21 @@ public class CommandExecutionContext(IServiceProvider services, IConsoleControl 
 
     public int Result { get; set; }
 
+    /// <summary>Per-execution gate. The host's EnablePrompts policy must also allow interaction.</summary>
+    public bool EnablePrompts { get; set; } = true;
+
+    /// <summary>Suppresses exception details after sensitive input is used.</summary>
+    public bool HasSecretInput { get; set; }
+
     public IConsoleControl Console => console;
+
+    /// <summary>Gets the token cancelled when the application is shutting down.</summary>
+    public CancellationToken CancellationToken { get; private set; }
 
     public CommandTreeContext CommandTreeContext => _commandTreeContext ??= services.GetRequiredService<CommandTreeContext>();
 
     string[] ICommandExecutionContextInternals.Arguments { get => _arguments!; set => _arguments = value; }
+
+    CancellationToken ICommandExecutionContextInternals.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
 
 }

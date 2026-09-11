@@ -1,0 +1,182 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using CoreVar.CommandLineInterface.Registry;
+using CoreVar.CommandLineInterface.Publishing;
+using CoreVar.CommandLineInterface.Distribution;
+using Microsoft.AspNetCore.HttpOverrides;
+
+var builder = WebApplication.CreateBuilder(args);
+var options = new RegistryOptions();
+builder.WebHost.ConfigureKestrel(server => server.Limits.MaxRequestBodySize = options.MaxUploadBytes);
+builder.Services.AddSingleton(options);
+builder.Services.AddSingleton<FileRegistryStore>();
+builder.Services.AddHealthChecks();
+if (!string.IsNullOrWhiteSpace(options.OidcAuthority))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(jwt =>
+    {
+        jwt.Authority = options.OidcAuthority;
+        jwt.Audience = options.OidcAudience;
+        jwt.RequireHttpsMetadata = options.OidcRequireHttpsMetadata;
+        jwt.MapInboundClaims = false;
+    });
+    builder.Services.AddAuthorization();
+}
+var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    if (HttpMethods.IsPut(context.Request.Method) && context.Request.ContentLength > options.MaxUploadBytes)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        return;
+    }
+    try { await next(); }
+    catch (RegistryUploadTooLargeException) when (!context.Response.HasStarted)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+    }
+    catch (System.Security.Cryptography.CryptographicException exception) when (!context.Response.HasStarted)
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { error = exception.Message });
+    }
+});
+
+if (options.TrustForwardedHeaders)
+{
+    var forwardedHeaders = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto
+    };
+    forwardedHeaders.KnownIPNetworks.Clear();
+    forwardedHeaders.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaders);
+}
+if (!string.IsNullOrEmpty(options.PathBase)) app.UsePathBase(options.PathBase);
+if (!string.IsNullOrWhiteSpace(options.OidcAuthority))
+{
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
+
+app.MapHealthChecks("/healthz");
+app.MapGet("/v1/{tenant}/products/{product}/catalog.json", async (HttpRequest request, string tenant, string product, FileRegistryStore store, CancellationToken token) =>
+    ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? (await store.GetReleaseCatalogAsync(tenant, product, token) is { } catalog ? Results.Json(catalog) : Results.NotFound()));
+app.MapGet("/v1/{tenant}/modules/catalog.json", async (HttpRequest request, string tenant, FileRegistryStore store, CancellationToken token) =>
+    ReadDenied(request, tenant, "catalog.read", "module:*", options) ?? (await store.GetModuleCatalogAsync(tenant, token) is { } catalog ? Results.Json(catalog) : Results.NotFound()));
+app.MapGet("/v1/{tenant}/products/{product}/install.ps1", (HttpRequest request, string tenant, string product, string? channel) =>
+    ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? Results.Text(InstallerScriptGenerator.PowerShell(product,
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable",
+        options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"), options.SignedChannels.Contains(channel ?? "stable", StringComparer.OrdinalIgnoreCase)), "text/plain"));
+app.MapGet("/v1/{tenant}/products/{product}/install.sh", (HttpRequest request, string tenant, string product, string? channel) =>
+    ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? Results.Text(InstallerScriptGenerator.Shell(product,
+        PublicUri(request, options, $"/v1/{tenant}/products/{product}/catalog.json"), channel ?? "stable",
+        options.TrustedSigningKeys.GetValueOrDefault($"{tenant}/{product}"), options.SignedChannels.Contains(channel ?? "stable", StringComparer.OrdinalIgnoreCase)), "text/x-shellscript"));
+
+app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/{rid}", async (HttpRequest request, string tenant, string product,
+    string version, string rid, string? channel, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    channel ??= "stable";
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/{version}/{rid}.zip");
+    ReleaseArtifact result;
+    try { result = await store.PublishReleaseAsync(tenant, product, version, rid, channel, request.Body, uri, token,
+        request.Headers["X-CLI-Signature"].FirstOrDefault(), request.Headers["X-CLI-Signing-Key"].FirstOrDefault()); }
+    catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
+    Audit(app, request, tenant, "release.publish", $"product:{product}", version);
+    return Results.Json(result);
+});
+
+app.MapPut("/v1/{tenant}/modules/{id}/releases/{version}", async (HttpRequest request, string tenant, string id,
+    string version, string? channel, string? description, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "module.publish", $"module:{id}", options); if (unauthorized is not null) return unauthorized;
+    channel ??= "stable";
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/modules/{id}/{version}/module.zip");
+    var result = await store.PublishModuleAsync(tenant, id, version, channel, description ?? string.Empty, request.Body, uri, token);
+    Audit(app, request, tenant, "module.publish", $"module:{id}", version);
+    return Results.Json(result);
+});
+
+app.MapPut("/v1/{tenant}/products/{product}/releases/{version}/metadata", async (HttpRequest request, string tenant,
+    string product, string version, CoreVar.CommandLineInterface.Distribution.ReleaseMetadataPayload metadata, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    await store.SetReleaseMetadataAsync(tenant, product, version, metadata.Bundle, metadata.PostInstallArguments, token);
+    Audit(app, request, tenant, "release.metadata", $"product:{product}", version);
+    return Results.NoContent();
+});
+
+app.MapPut("/v1/{tenant}/products/{product}/bundles/{snapshot}", async (HttpRequest request, string tenant,
+    string product, string snapshot, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    var uri = PublicUri(request, options, $"/v1/{tenant}/blobs/products/{product}/bundles/{snapshot}.json");
+    try
+    {
+        var result = await store.PublishBundleSnapshotAsync(tenant, product, snapshot, request.Body, uri, token);
+        Audit(app, request, tenant, "bundle.publish", $"product:{product}", snapshot);
+        return Results.Json(result);
+    }
+    catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
+});
+
+app.MapPost("/v1/{tenant}/products/{product}/releases/{version}/complete", async (HttpRequest request, string tenant,
+    string product, string version, CompleteReleaseRequest completion, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.promote", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    try
+    {
+        await store.CompleteReleaseAsync(tenant, product, version, completion.RequiredRuntimeIdentifiers,
+            completion.Bundle, completion.PostInstallArguments, completion.PromoteChannel,
+            Version.Parse(completion.HostVersion), Version.Parse(completion.FrameworkVersion), token);
+        Audit(app, request, tenant, "release.complete", $"product:{product}", version);
+        return Results.NoContent();
+    }
+    catch (InvalidOperationException exception) { return Results.BadRequest(new { error = exception.Message }); }
+});
+
+app.MapPost("/v1/{tenant}/products/{product}/channels/{channel}", async (HttpRequest request, string tenant, string product,
+    string channel, string version, int? percentage, string? fallbackVersion, string? seed, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.promote", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    await store.PromoteAsync(tenant, product, channel, version, percentage ?? 100, fallbackVersion, seed ?? version, token);
+    Audit(app, request, tenant, "release.promote", $"product:{product}", version);
+    return Results.NoContent();
+});
+
+app.MapPost("/v1/{tenant}/products/{product}/revocations", async (HttpRequest request, string tenant, string product,
+    string? version, string? sha256, string? reason, FileRegistryStore store, CancellationToken token) =>
+{
+    var unauthorized = RegistryAccess.Authorize(request, tenant, "release.revoke", $"product:{product}", options); if (unauthorized is not null) return unauthorized;
+    await store.RevokeAsync(tenant, product, version, sha256, reason ?? "Revoked by publisher", token);
+    Audit(app, request, tenant, "release.revoke", $"product:{product}", version ?? sha256 ?? "unspecified");
+    return Results.NoContent();
+});
+
+app.MapGet("/v1/{tenant}/blobs/{**path}", (HttpRequest request, string tenant, string path, FileRegistryStore store) =>
+{
+    var denied = ReadDenied(request, tenant, "artifact.read", path.StartsWith("modules/", StringComparison.OrdinalIgnoreCase) ? "module:*" : "product:*", options);
+    if (denied is not null) return denied;
+    var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+    var file = store.GetBlobPath(tenant, segments);
+    return File.Exists(file) ? Results.File(file, "application/octet-stream", enableRangeProcessing: true) : Results.NotFound();
+});
+
+app.Run();
+
+static IResult? ReadDenied(HttpRequest request, string tenant, string permission, string resource, RegistryOptions options) =>
+    options.RequireAuthenticatedReads ? RegistryAccess.Authorize(request, tenant, permission, resource, options) : null;
+
+static void Audit(WebApplication app, HttpRequest request, string tenant, string operation, string resource, string version) =>
+    app.Logger.LogInformation("CLI registry mutation. Subject={Subject}, Tenant={Tenant}, Operation={Operation}, Resource={Resource}, Version={Version}, AuthenticationType={AuthenticationType}, CorrelationId={CorrelationId}",
+        request.HttpContext.User.FindFirst("sub")?.Value ?? "api-key", tenant, operation, resource, version,
+        request.HttpContext.User.Identity?.AuthenticationType ?? "api-key", request.HttpContext.TraceIdentifier);
+
+static Uri PublicUri(HttpRequest request, RegistryOptions options, string path)
+{
+    if (options.PublicBaseUri is not null) return new Uri(options.PublicBaseUri, path.TrimStart('/'));
+    return new Uri($"{request.Scheme}://{request.Host}{request.PathBase}{path}");
+}
+
+public partial class Program;

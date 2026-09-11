@@ -1,0 +1,27 @@
+name: Publish CoreVar CLI
+description: Publish an immutable CLI artifact to a self-hosted CoreVar CLI Registry
+inputs:
+  endpoint: { description: Registry base URL, required: true }
+  tenant: { description: Registry tenant, required: true }
+  product: { description: CLI product ID, required: true }
+  version: { description: Release version, required: true }
+  rid: { description: .NET runtime identifier, required: true }
+  file: { description: Artifact archive, required: true }
+  channel: { description: Release channel, required: false, default: stable }
+  token: { description: Tenant publish token, required: true }
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        COREVAR_REGISTRY_TOKEN: ${{ inputs.token }}
+      run: >-
+        dotnet tool install --global CoreVar.CliTools || dotnet tool update --global CoreVar.CliTools;
+        cli-tools publish cli
+        --endpoint '${{ inputs.endpoint }}'
+        --tenant '${{ inputs.tenant }}'
+        --product '${{ inputs.product }}'
+        --version '${{ inputs.version }}'
+        --rid '${{ inputs.rid }}'
+        --file '${{ inputs.file }}'
+        --channel '${{ inputs.channel }}'

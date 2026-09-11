@@ -8,6 +8,42 @@ namespace CoreVar.CommandLineInterface.Support;
 public class CommandTreeBuilder
 {
 
+    private static void AddOptionContext(ref Dictionary<string, CommandTreeOptionContext>? contexts, CommandTreeOption option, int position, string[] arguments)
+    {
+        contexts ??= [];
+        if (!contexts.TryGetValue(option.Name, out var context))
+        {
+            context = new CommandTreeOptionContext { Option = option, Position = position, ValueLength = option.AcceptsValue ? 1 : 0 };
+            contexts.Add(option.Name, context);
+        }
+        context.Position = position;
+        context.ValueLength = option.AcceptsValue ? 1 : 0;
+        context.Positions.Add(position);
+        if (option.AcceptsValue && position + 1 < arguments.Length)
+            context.Values.Add(arguments[position + 1]);
+    }
+
+    private static void AddArgumentContext(ref Dictionary<string, CommandTreeArgumentContext>? contexts, CommandTreeArgument argument, int start, int end, string[] arguments)
+    {
+        contexts ??= [];
+        if (contexts.TryGetValue(argument.Name, out var existing))
+        {
+            for (var index = start; index < end; index++)
+            {
+                existing.Values.Add(arguments[index]);
+                existing.Positions.Add(index);
+            }
+            return;
+        }
+        var context = new CommandTreeArgumentContext { Argument = argument, ValueRange = new Range(start, end) };
+        for (var index = start; index < end; index++)
+        {
+            context.Values.Add(arguments[index]);
+            context.Positions.Add(index);
+        }
+        contexts.Add(argument.Name, context);
+    }
+
     private static CommandTreeElement BuildElement(IParentBuilder builder)
     {
         var parentBuilderInternals = (IParentBuilderInternals)builder;
@@ -18,6 +54,11 @@ public class CommandTreeBuilder
             Description = parentBuilderInternals.Description,
             ExecuteDelegate = executableBuilderInternals.ExecuteDelegate,
             Usages = executableBuilderInternals.Usages,
+            Middleware = [.. executableBuilderInternals.Middleware],
+            Validators = [.. executableBuilderInternals.Validators],
+            Aliases = new(executableBuilderInternals.Aliases, parentBuilderInternals.CommandLineOptions.CommandComparer),
+            IsHidden = executableBuilderInternals.IsHidden,
+            DeprecationMessage = executableBuilderInternals.DeprecationMessage,
 
             HostBuilders = parentBuilderInternals.HostBuilders,
             HostSetups = parentBuilderInternals.HostSetups
@@ -47,10 +88,21 @@ public class CommandTreeBuilder
         {
             GetValueHandler = builderInternals.GetValueHandler,
             IsRequired = builderInternals.IsRequired,
+            PromptIfMissing = builderInternals.PromptIfMissing,
+            PromptLabel = builderInternals.PromptLabel,
+            Secret = builderInternals.Secret,
             Aliases = builderInternals.Aliases,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
             Description = builderInternals.Description
+            ,DefaultValue = builderInternals.DefaultValue
+            ,EnvironmentVariable = builderInternals.EnvironmentVariable
+            ,ConfigurationKey = builderInternals.ConfigurationKey
+            ,IsGlobal = builderInternals.IsGlobal
+            ,IsHidden = builderInternals.IsHidden
+            ,DeprecationMessage = builderInternals.DeprecationMessage
+            ,Validators = [.. builderInternals.Validators]
+            ,Completions = builderInternals.Secret ? [] : [.. builderInternals.Completions]
         };
 
         return option;
@@ -76,9 +128,16 @@ public class CommandTreeBuilder
         {
             GetValueHandler = builderInternals.GetValueHandler,
             IsRequired = builderInternals.IsRequired,
+            PromptIfMissing = builderInternals.PromptIfMissing,
+            PromptLabel = builderInternals.PromptLabel,
+            Secret = builderInternals.Secret,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
             Description = builderInternals.Description
+            ,DefaultValue = builderInternals.DefaultValue
+            ,IsVariadic = builderInternals.IsVariadic
+            ,Validators = [.. builderInternals.Validators]
+            ,Completions = builderInternals.Secret ? [] : [.. builderInternals.Completions]
         };
 
         return argument;
@@ -90,7 +149,23 @@ public class CommandTreeBuilder
         var commandBuilder = new CommandBuilder(commandName, parentBuilderInternals.CommandLineOptions);
         builder(commandBuilder);
         var childElement = BuildElement(commandBuilder);
+        if (parent.Options is not null)
+        {
+            foreach (var global in parent.Options.Where(pair => pair.Value.IsGlobal))
+            {
+                childElement.Options ??= new(parentBuilderInternals.CommandLineOptions.OptionComparer);
+                childElement.Options.TryAdd(global.Key, global.Value);
+                if (global.Value.Aliases is not null)
+                {
+                    childElement.OptionAliases ??= new(parentBuilderInternals.CommandLineOptions.OptionComparer);
+                    foreach (var alias in global.Value.Aliases)
+                        childElement.OptionAliases.TryAdd(alias, global.Key);
+                }
+            }
+        }
         parent.Children.Add(commandName, childElement);
+        foreach (var alias in childElement.Aliases)
+            parent.Children.Add(alias, childElement);
         return (childElement, commandBuilder);
     }
 
@@ -121,11 +196,19 @@ public class CommandTreeBuilder
             else
             {
                 var currentArgumentPosition = 0;
+                var endOfOptions = false;
                 while (nextPosition < arguments.Length)
                 {
                     argument = arguments[nextPosition];
 
-                    if (!element.DisableHelp)
+                    if (!endOfOptions && argument == "--")
+                    {
+                        endOfOptions = true;
+                        nextPosition++;
+                        continue;
+                    }
+
+                    if (!endOfOptions && !element.DisableHelp)
                         if (element.HelpOptionComparer is not null)
                         {
                             if (element.HelpOptionComparer(argument))
@@ -140,28 +223,21 @@ public class CommandTreeBuilder
                         }
 
 
-                    if (element.OptionAliases is not null && element.OptionAliases.TryGetValue(argument, out var commandOptionName) == true)
+                    if (!endOfOptions && element.OptionAliases is not null && element.OptionAliases.TryGetValue(argument, out var commandOptionName) == true)
                         argument = commandOptionName;
 
-                    if (element.Options?.TryGetValue(argument, out var commandOption) == true)
+                    if (!endOfOptions && element.Options?.TryGetValue(argument, out var commandOption) == true)
                     {
-                        optionContexts ??= [];
-                        optionContexts.Add(commandOption.Name, new CommandTreeOptionContext
-                        {
-                            Option = commandOption,
-                            Position = nextPosition,
-                            ValueLength = commandOption.AcceptsValue ? 1 : 0
-                        });
+                        AddOptionContext(ref optionContexts, commandOption, nextPosition, arguments);
+                        if (commandOption.AcceptsValue)
+                            nextPosition++;
                     }
                     else if (element.Arguments?.Count > currentArgumentPosition)
                     {
-                        argumentContexts ??= [];
                         var commandArgument = element.Arguments[currentArgumentPosition++];
-                        argumentContexts.Add(commandArgument.Name, new CommandTreeArgumentContext
-                        {
-                            Argument = commandArgument,
-                            ValueRange = new Range(nextPosition, nextPosition + 1)
-                        });
+                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, nextPosition + 1, arguments);
+                        if (commandArgument.IsVariadic)
+                            currentArgumentPosition--;
                     }
                     nextPosition++;
                 }
@@ -187,6 +263,7 @@ public class CommandTreeBuilder
         Dictionary<string, CommandTreeOptionContext>? optionContexts = null;
         Dictionary<string, CommandTreeArgumentContext>? argumentContexts = null;
         var hasHelpOption = false;
+        BuildCommandElements(element, executableBuilder);
         if (nextPosition < arguments.Length)
         {
             var commandKey = arguments[nextPosition];
@@ -197,14 +274,20 @@ public class CommandTreeBuilder
             }
             else
             {
-                BuildCommandElements(element, executableBuilder);
-
                 int currentCommandArgumentPosition = 0;
+                var endOfOptions = false;
                 while (nextPosition < arguments.Length)
                 {
                     commandKey = arguments[nextPosition];
 
-                    if (!(element.DisableHelp = executableBuilderInternals.DisableHelp))
+                    if (!endOfOptions && commandKey == "--")
+                    {
+                        endOfOptions = true;
+                        nextPosition++;
+                        continue;
+                    }
+
+                    if (!endOfOptions && !(element.DisableHelp = executableBuilderInternals.DisableHelp))
                     {
                         if (executableBuilderInternals.HelpOption is not null)
                         {
@@ -229,12 +312,12 @@ public class CommandTreeBuilder
                         }
                     }
 
-                    if (element.HelpOptionComparer is not null)
+                    if (!endOfOptions && element.HelpOptionComparer is not null)
                     {
                         if (element.HelpOptionComparer(arguments[nextPosition]))
                             hasHelpOption = true;
                     }
-                    else
+                    else if (!endOfOptions)
                     {
                         if (parentBuilderInternals.CommandLineOptions.OptionComparer.Equals("--help", arguments[nextPosition]) ||
                             parentBuilderInternals.CommandLineOptions.OptionComparer.Equals("-?", arguments[nextPosition]) ||
@@ -242,31 +325,22 @@ public class CommandTreeBuilder
                             hasHelpOption = true;
                     }
 
-                    if (element.OptionAliases is not null && element.OptionAliases.TryGetValue(commandKey, out var commandOptionName) == true)
+                    if (!endOfOptions && element.OptionAliases is not null && element.OptionAliases.TryGetValue(commandKey, out var commandOptionName) == true)
                         commandKey = commandOptionName;
 
-                    if (element.Options?.TryGetValue(commandKey, out var commandOption) == true)
+                    if (!endOfOptions && element.Options?.TryGetValue(commandKey, out var commandOption) == true)
                     {
-                        optionContexts ??= [];
-                        optionContexts.Add(commandOption.Name, new CommandTreeOptionContext
-                        {
-                            Option = commandOption,
-                            Position = nextPosition,
-                            ValueLength = commandOption.AcceptsValue ? 1 : 0
-                        });
+                        AddOptionContext(ref optionContexts, commandOption, nextPosition, arguments);
 
                         if (commandOption.AcceptsValue)
                             nextPosition++;
                     }
                     else if (element.Arguments?.Count > 0)
                     {
-                        argumentContexts ??= [];
                         var commandArgument = element.Arguments[currentCommandArgumentPosition++];
-                        argumentContexts.Add(commandArgument.Name, new CommandTreeArgumentContext
-                        {
-                            Argument = commandArgument,
-                            ValueRange = new Range(nextPosition, nextPosition + 1)
-                        });
+                        AddArgumentContext(ref argumentContexts, commandArgument, nextPosition, nextPosition + 1, arguments);
+                        if (commandArgument.IsVariadic)
+                            currentCommandArgumentPosition--;
                     }
                     nextPosition++;
                 }

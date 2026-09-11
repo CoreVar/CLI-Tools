@@ -3,10 +3,14 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 using CoreVar.CommandLineInterface.Interfaces;
 using CoreVar.CommandLineInterface.Runtime;
 using CoreVar.CommandLineInterface.Support;
+using CoreVar.CommandLineInterface.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using CoreVar.CommandLineInterface.Execution;
+using CoreVar.CommandLineInterface.Validation;
+using CoreVar.CommandLineInterface.Elevation;
 
 namespace CoreVar.CommandLineInterface;
 
@@ -68,7 +72,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         if (options.IsReplEnabled && builderInternals.ExecuteDelegate is not null)
             throw new InvalidOperationException("Cannot have a command executor at the root level when REPL is enabled.");
 
-        var args = argumentsRetriever();
+        var args = ArgumentUtilities.ExpandArguments(argumentsRetriever());
         var useRepl = args.Length == 0 && options.IsReplEnabled;
 
         _ = hostBuilder.Logging.AddFilter<ConsoleLoggerProvider>((category, level)
@@ -84,6 +88,8 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         hostBuilder.Services
             .AddSingleton(options)
             .AddSingleton<IConsoleControl, NativeConsoleControl>()
+            .AddScoped<ICommandPromptService, NativeCommandPromptService>()
+            .AddSingleton<IElevationService, ProcessElevationService>()
             .AddSingleton<CommandExecutionService>()
             .AddSingleton<ICommandExecutor>(sp => sp.GetRequiredService<CommandExecutionService>())
             .AddScoped<CommandExecutionContext>();
@@ -99,10 +105,10 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
         }
         else
         {
-            var context = CommandTreeBuilder.BuildAndLoad(this, args);
-            commandTree = context.Tree;
+            commandTree = CommandTreeBuilder.Build(this);
             hostBuilder.Services
-                .AddSingleton(context);
+                .AddScoped(_ => new CommandTreeContextState { CommandTreeContext = CommandTreeBuilder.Load(commandTree, args) })
+                .AddScoped(sp => sp.GetRequiredService<CommandTreeContextState>().CommandTreeContext);
         }
 
         hostBuilder.Services.AddSingleton(commandTree);
@@ -183,4 +189,14 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
     bool IExecutableBuilderInternals.DisableHelp { get; set; }
 
     List<CommandTreeElementUsage>? IExecutableBuilderInternals.Usages { get; set; }
+
+    List<CommandMiddleware> IExecutableBuilderInternals.Middleware { get; } = [];
+
+    List<Func<CommandExecutionContext, ValueTask<ValidationResult>>> IExecutableBuilderInternals.Validators { get; } = [];
+
+    HashSet<string> IExecutableBuilderInternals.Aliases { get; } = new(options.CommandComparer);
+
+    bool IExecutableBuilderInternals.IsHidden { get; set; }
+
+    string? IExecutableBuilderInternals.DeprecationMessage { get; set; }
 }

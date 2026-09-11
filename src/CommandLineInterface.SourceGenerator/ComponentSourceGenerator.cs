@@ -19,9 +19,10 @@ public partial class ComponentSourceGenerator : IIncrementalGenerator
             builder.Append(valueChar switch
             {
                 '"' => "\\\"",
-                '\n' => "\\\n",
-                '\r' => "\\\r",
-                '\t' => "\\\t",
+                '\\' => "\\\\",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
                 _ => valueChar
             });
         builder.Append("\"");
@@ -37,7 +38,9 @@ public partial class ComponentSourceGenerator : IIncrementalGenerator
                 continue;
             builder.Append(valueChar);
         }
-        if (char.IsDigit(builder[0]))
+        if (builder.Length == 0)
+            builder.Append("value");
+        else if (char.IsDigit(builder[0]))
             builder.Insert(0, '_');
         return builder.ToString();
     }
@@ -94,7 +97,8 @@ using Microsoft.Extensions.DependencyInjection;
         var typeNamespace = componentContextSpec.Type.ContainingNamespace.ToDisplayString();
         var typeName = componentContextSpec.Type.Name;
 
-        sourceBuilder.AppendLine($@"namespace {typeNamespace};");
+        if (!componentContextSpec.Type.ContainingNamespace.IsGlobalNamespace)
+            sourceBuilder.AppendLine($@"namespace {typeNamespace};");
 
         sourceBuilder.Append($@"
 {new string(' ', indent * 4)}partial class {typeName}
@@ -165,6 +169,13 @@ using Microsoft.Extensions.DependencyInjection;
 
         indent++;
 
+        if (componentSpec.Aliases.Count > 0)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Alias({string.Join(", ", componentSpec.Aliases.Select(CompilerSafeString))});");
+        if (componentSpec.IsHidden)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Hidden();");
+        if (componentSpec.DeprecationMessage is not null)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{commandParameterName}.Deprecated({CompilerSafeString(componentSpec.DeprecationMessage)});");
+
         var hasSetup =
             componentSpec.SetupHostBuilderMethodName is not null ||
             componentSpec.SetupServicesMethodName is not null ||
@@ -209,19 +220,47 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.Append($@"{new string(' ', indent * 4)}var {argumentParameterName} = {commandParameterName}.Argument<{argument.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(argument.Name)})");
             indent++;
 
+            if (argument.PromptIfMissing)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.PromptIfMissing({(argument.PromptLabel is null ? "null" : CompilerSafeString(argument.PromptLabel))})");
+            }
+            if (argument.Secret)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Secret()");
+            }
+
             if (argument.Description is not null)
             {
                 sourceBuilder.AppendLine();
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}.Description({CompilerSafeString(argument.Description)})");
             }
 
+            sourceBuilder.AppendLine();
+            sourceBuilder.Append($@"{new string(' ', indent * 4)}.{(argument.IsRequired ? "IsRequired" : "IsOptional")}()");
+
+            if (argument.IsVariadic)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Variadic()");
+            }
+            if (argument.Completions.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Complete({string.Join(", ", argument.Completions.Select(CompilerSafeString))})");
+            }
+
             indent--;
             sourceBuilder.AppendLine(";");
 
 
-            indent += 2;
-            propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{argument.TargetPropertyName} = context.GetArgument({argumentParameterName});");
-            indent -= 2;
+            if (argument.ParameterIndex < 0)
+            {
+                indent += 2;
+                propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{argument.TargetPropertyName} = context.GetArgument({argumentParameterName});");
+                indent -= 2;
+            }
         }
 
         foreach (var option in componentSpec.Options)
@@ -238,19 +277,72 @@ using Microsoft.Extensions.DependencyInjection;
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}var {optionParameterName} = {commandParameterName}.Option<{option.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(option.Name)})");
             indent++;
 
+            if (option.PromptIfMissing)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.PromptIfMissing({(option.PromptLabel is null ? "null" : CompilerSafeString(option.PromptLabel))})");
+            }
+            if (option.Secret)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Secret()");
+            }
+
             if (option.Description is not null)
             {
                 sourceBuilder.AppendLine();
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}.Description({CompilerSafeString(option.Description)})");
             }
 
+            sourceBuilder.AppendLine();
+            sourceBuilder.Append($@"{new string(' ', indent * 4)}.{(option.IsRequired ? "IsRequired" : "IsOptional")}()");
+
+            if (option.Aliases.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.WithAlias({string.Join(", ", option.Aliases.Select(CompilerSafeString))})");
+            }
+            if (option.EnvironmentVariable is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.FromEnvironment({CompilerSafeString(option.EnvironmentVariable)})");
+            }
+            if (option.ConfigurationKey is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.FromConfiguration({CompilerSafeString(option.ConfigurationKey)})");
+            }
+            if (option.IsGlobal)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Global()");
+            }
+            if (option.IsHidden)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Hidden()");
+            }
+            if (option.DeprecationMessage is not null)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Deprecated({CompilerSafeString(option.DeprecationMessage)})");
+            }
+            if (option.Completions.Count > 0)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.Complete({string.Join(", ", option.Completions.Select(CompilerSafeString))})");
+            }
+
             indent--;
             sourceBuilder.AppendLine(";");
 
 
-            indent += 2;
-            propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{option.TargetPropertyName} = context.GetOption({optionParameterName});");
-            indent -= 2;
+            if (option.ParameterIndex < 0)
+            {
+                indent += 2;
+                propertyAssignmentsBuilder.AppendLine($@"{new string(' ', indent * 4)}component.{option.TargetPropertyName} = context.GetOption({optionParameterName});");
+                indent -= 2;
+            }
         }
 
         var hasElement = componentSpec.Description is not null ||
@@ -280,10 +372,10 @@ using Microsoft.Extensions.DependencyInjection;
 
             sourceBuilder.Append(propertyAssignmentsBuilder);
 
-            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}await component.{componentSpec.ExecuteMethodName}();
-{new string(' ', indent * 4)}if (component is IAsyncDisposable asyncDisposable)
+            sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}{(componentSpec.ExecuteReturnsVoid ? "" : "await ")}component.{componentSpec.ExecuteMethodName}({BuildExecuteArguments(componentSpec)});
+{new string(' ', indent * 4)}if ((object)component is IAsyncDisposable asyncDisposable)
 {new string(' ', (indent + 1) * 4)}await asyncDisposable.DisposeAsync();
-{new string(' ', indent * 4)}if (component is IDisposable disposable)
+{new string(' ', indent * 4)}else if ((object)component is IDisposable disposable)
 {new string(' ', (indent + 1) * 4)}disposable.Dispose();");
 
             indent--;
@@ -301,6 +393,18 @@ using Microsoft.Extensions.DependencyInjection;
 
         indent--;
         sourceBuilder.AppendLine($@"{new string(' ', indent * 4)}}});");
+    }
+
+    private string BuildExecuteArguments(ComponentSpec component)
+    {
+        if (component.ExecuteParameterCount == 0) return string.Empty;
+        var values = new string[component.ExecuteParameterCount];
+        foreach (var index in component.CancellationTokenParameters) values[index] = "context.CancellationToken";
+        foreach (var argument in component.Arguments.Where(item => item.ParameterIndex >= 0))
+            values[argument.ParameterIndex] = $"context.GetArgument({CompilerSafeVariableName(argument.Name)}Argument)";
+        foreach (var option in component.Options.Where(item => item.ParameterIndex >= 0))
+            values[option.ParameterIndex] = $"context.GetOption({CompilerSafeVariableName(option.Name)}Option)";
+        return string.Join(", ", values);
     }
 
 }

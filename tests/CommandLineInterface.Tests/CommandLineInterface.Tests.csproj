@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CommandLineInterface\CommandLineInterface.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Blazor\CommandLineInterface.Blazor.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Modules\CommandLineInterface.Modules.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" />
+    <ProjectReference Include="..\..\src\CommandLineInterface.Publishing\CommandLineInterface.Publishing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

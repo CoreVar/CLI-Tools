@@ -86,12 +86,24 @@ partial class ComponentSourceGenerator
 
             string? commandName = null;
             string? commandDescription = null;
+            List<string> componentSpecAliases = [];
+            bool commandHidden = false;
+            string? commandDeprecated = null;
             List<ComponentSpec> nestedCommands = [];
 
             foreach (var attribute in componentTypeToGenerate.GetAttributes())
             {
                 if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandNameAttributeType))
+                {
                     commandName = (string)attribute.ConstructorArguments[0].Value!;
+                    foreach (var named in attribute.NamedArguments)
+                    {
+                        if (named.Key == "Aliases")
+                            foreach (var alias in named.Value.Values) componentSpecAliases.Add((string)alias.Value!);
+                        else if (named.Key == "Hidden") commandHidden = (bool)named.Value.Value!;
+                        else if (named.Key == "Deprecated") commandDeprecated = (string?)named.Value.Value;
+                    }
+                }
                 else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.DescriptionAttributeType))
                     commandDescription = (string)attribute.ConstructorArguments[0].Value!;
                 else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass!.OriginalDefinition, knownSymbols.ComponentAttributeType))
@@ -108,8 +120,12 @@ partial class ComponentSourceGenerator
             {
                 Name = commandName,
                 Description = commandDescription,
-                Type = componentTypeToGenerate
+                Type = componentTypeToGenerate,
+                IsHidden = commandHidden,
+                DeprecationMessage = commandDeprecated
             };
+
+            componentSpec.Aliases.AddRange(componentSpecAliases);
 
             foreach (var nestedCommand in nestedCommands)
                 componentSpec.NestedCommands.Add(nestedCommand);
@@ -122,6 +138,7 @@ partial class ComponentSourceGenerator
                     CommandArgumentSpec? commandArgument = default;
                     string? commandElementDescription = default;
                     bool? isRequired = default;
+                    var optionAliases = new List<string>();
                     foreach (var attribute in commandProperty.GetAttributes())
                     {
                         if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAttributeType))
@@ -133,6 +150,19 @@ partial class ComponentSourceGenerator
                                 TargetPropertyName = commandProperty.Name,
                                 TargetPropertyType = commandProperty.Type
                             };
+                            foreach (var named in attribute.NamedArguments)
+                            {
+                                if (named.Key == "EnvironmentVariable") commandOption.EnvironmentVariable = (string?)named.Value.Value;
+                                else if (named.Key == "ConfigurationKey") commandOption.ConfigurationKey = (string?)named.Value.Value;
+                                else if (named.Key == "Global") commandOption.IsGlobal = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") commandOption.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") commandOption.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") commandOption.Secret = (bool)named.Value.Value!;
+                                else if (named.Key == "Hidden") commandOption.IsHidden = (bool)named.Value.Value!;
+                                else if (named.Key == "Deprecated") commandOption.DeprecationMessage = (string?)named.Value.Value;
+                                else if (named.Key == "Completions")
+                                    foreach (var value in named.Value.Values) commandOption.Completions.Add((string)value.Value!);
+                            }
                         }
                         else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandArgumentAttributeType))
                         {
@@ -142,7 +172,7 @@ partial class ComponentSourceGenerator
                             {
                                 foreach (var namedArgument in attribute.NamedArguments)
                                     if (namedArgument.Key == "Index")
-                                        index = (int)attribute.NamedArguments[0].Value.Value!;
+                                        index = (int)namedArgument.Value.Value!;
                             }
 
                             if (attributeName is not null)
@@ -154,7 +184,20 @@ partial class ComponentSourceGenerator
                                     TargetPropertyName = commandProperty.Name,
                                     TargetPropertyType = commandProperty.Type
                                 };
+                                foreach (var named in attribute.NamedArguments)
+                                {
+                                    if (named.Key == "Variadic") commandArgument.IsVariadic = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") commandArgument.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") commandArgument.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") commandArgument.Secret = (bool)named.Value.Value!;
+                                    else if (named.Key == "Completions")
+                                        foreach (var value in named.Value.Values) commandArgument.Completions.Add((string)value.Value!);
+                                }
                             }
+                        }
+                        else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAliasAttributeType))
+                        {
+                            optionAliases.Add((string)attribute.ConstructorArguments[0].Value!);
                         }
                         else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.DescriptionAttributeType))
                         {
@@ -181,6 +224,7 @@ partial class ComponentSourceGenerator
                     {
                         commandOption.Description = commandElementDescription;
                         commandOption.IsRequired = isRequired ?? true; // TODO: Handle fallback value for nullable types
+                        commandOption.Aliases.AddRange(optionAliases);
 
                         componentSpec.Options.Add(commandOption);
                     }
@@ -191,7 +235,11 @@ partial class ComponentSourceGenerator
                         commandMethod.Name == "ExecuteAsync")
                     {
                         if (!commandMethod.IsStatic && commandMethod.DeclaredAccessibility == Accessibility.Public)
+                        {
                             componentSpec.ExecuteMethodName = commandMethod.Name;
+                            componentSpec.ExecuteReturnsVoid = commandMethod.ReturnsVoid;
+                            ParseExecuteParameters(componentSpec, commandMethod);
+                        }
                     }
                     else if (commandMethod.Name == "SetupHostBuilder")
                     {
@@ -211,7 +259,112 @@ partial class ComponentSourceGenerator
                     }
                 }
             }
+            componentSpec.Arguments.Sort((left, right) =>
+            {
+                var leftIndex = left.Index is >= 0 ? left.Index.Value : int.MaxValue;
+                var rightIndex = right.Index is >= 0 ? right.Index.Value : int.MaxValue;
+                return leftIndex.CompareTo(rightIndex);
+            });
             return componentSpec;
+        }
+
+        private void ParseExecuteParameters(ComponentSpec component, IMethodSymbol method)
+        {
+            component.ExecuteParameterCount = method.Parameters.Length;
+            foreach (var parameter in method.Parameters)
+            {
+                if (parameter.Type.ToDisplayString() == "System.Threading.CancellationToken")
+                {
+                    component.CancellationTokenParameters.Add(parameter.Ordinal);
+                    continue;
+                }
+
+                CommandOptionSpec? option = null;
+                CommandArgumentSpec? argument = null;
+                string? description = null;
+                bool? required = null;
+                var aliases = new List<string>();
+
+                foreach (var attribute in parameter.GetAttributes())
+                {
+                    if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAttributeType))
+                    {
+                        option = new CommandOptionSpec
+                        {
+                            Name = (string)attribute.ConstructorArguments[0].Value!,
+                            TargetPropertyName = parameter.Name,
+                            TargetPropertyType = parameter.Type,
+                            ParameterIndex = parameter.Ordinal
+                        };
+                        foreach (var named in attribute.NamedArguments)
+                        {
+                            if (named.Key == "EnvironmentVariable") option.EnvironmentVariable = (string?)named.Value.Value;
+                            else if (named.Key == "ConfigurationKey") option.ConfigurationKey = (string?)named.Value.Value;
+                            else if (named.Key == "Global") option.IsGlobal = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") option.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") option.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") option.Secret = (bool)named.Value.Value!;
+                            else if (named.Key == "Hidden") option.IsHidden = (bool)named.Value.Value!;
+                            else if (named.Key == "Deprecated") option.DeprecationMessage = (string?)named.Value.Value;
+                            else if (named.Key == "Completions") foreach (var value in named.Value.Values) option.Completions.Add((string)value.Value!);
+                        }
+                    }
+                    else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandArgumentAttributeType))
+                    {
+                        argument = new CommandArgumentSpec
+                        {
+                            Name = (string)attribute.ConstructorArguments[0].Value!,
+                            TargetPropertyName = parameter.Name,
+                            TargetPropertyType = parameter.Type,
+                            ParameterIndex = parameter.Ordinal,
+                            Index = parameter.Ordinal
+                        };
+                        foreach (var named in attribute.NamedArguments)
+                        {
+                            if (named.Key == "Index") argument.Index = (int)named.Value.Value!;
+                            else if (named.Key == "Variadic") argument.IsVariadic = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptIfMissing") argument.PromptIfMissing = (bool)named.Value.Value!;
+                                else if (named.Key == "PromptLabel") argument.PromptLabel = (string?)named.Value.Value;
+                                else if (named.Key == "Secret") argument.Secret = (bool)named.Value.Value!;
+                            else if (named.Key == "Completions") foreach (var value in named.Value.Values) argument.Completions.Add((string)value.Value!);
+                        }
+                    }
+                    else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.CommandOptionAliasAttributeType))
+                        aliases.Add((string)attribute.ConstructorArguments[0].Value!);
+                    else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.DescriptionAttributeType))
+                        description = (string)attribute.ConstructorArguments[0].Value!;
+                    else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.RequiredAttributeType)) required = true;
+                    else if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, knownSymbols.OptionalAttributeType)) required = false;
+                }
+
+                var isOptional = parameter.HasExplicitDefaultValue || parameter.NullableAnnotation == NullableAnnotation.Annotated ||
+                    (parameter.Type.SpecialType == SpecialType.System_Boolean && option is not null);
+                if (option is null && argument is null)
+                {
+                    argument = new CommandArgumentSpec
+                    {
+                        Name = parameter.Name,
+                        TargetPropertyName = parameter.Name,
+                        TargetPropertyType = parameter.Type,
+                        ParameterIndex = parameter.Ordinal,
+                        Index = parameter.Ordinal
+                    };
+                }
+
+                if (option is not null)
+                {
+                    option.Description = description;
+                    option.IsRequired = required ?? !isOptional;
+                    option.Aliases.AddRange(aliases);
+                    component.Options.Add(option);
+                }
+                else if (argument is not null)
+                {
+                    argument.Description = description;
+                    argument.IsRequired = required ?? !isOptional;
+                    component.Arguments.Add(argument);
+                }
+            }
         }
 
     }

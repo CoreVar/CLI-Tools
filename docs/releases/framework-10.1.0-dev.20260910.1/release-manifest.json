@@ -1,0 +1,129 @@
+{
+  "status": "published-and-mapped-feed-verified",
+  "sourceCommit": "e63e31ac95e5236b275221db3e499165c49c7a42",
+  "sourceArchiveSha256": "c88f2b2d0fefea9c8d33a7adf28af3df9e2fda4c44829453b302aeccc21b973e",
+  "version": "10.1.0-dev.20260910.1",
+  "destination": "https://pkgs.dev.azure.com/corevar/_packaging/CoreVar-Toolkit/nuget/v3/index.json",
+  "packages": [
+    {
+      "file": "CoreVar.CommandLineInterface.10.1.0-dev.20260910.1.nupkg",
+      "sha256": "d1551fab0df3b4e41f1ca9f7811ae592da2058b0def8d029fce1334aed567d12",
+      "dependencies": [
+        {
+          "id": "CoreVar.CommandLineInterface.Abstractions",
+          "version": "10.1.0-dev.20260910.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "Microsoft.Extensions.Hosting",
+          "version": "10.0.0",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "CoreVar.CommandLineInterface.Abstractions",
+          "version": "10.1.0-dev.20260910.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "Microsoft.Extensions.Hosting",
+          "version": "8.0.0",
+          "exclude": "Build,Analyzers"
+        }
+      ]
+    },
+    {
+      "file": "CoreVar.CommandLineInterface.Abstractions.10.1.0-dev.20260910.1.nupkg",
+      "sha256": "4616815f5b29610440f876bdfc15f3db93fcf7a79955e3ccc369081034dfd8ac",
+      "dependencies": [
+        {
+          "id": "Microsoft.Extensions.Hosting.Abstractions",
+          "version": "10.0.0",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "Microsoft.Extensions.Hosting.Abstractions",
+          "version": "8.0.0",
+          "exclude": "Build,Analyzers"
+        }
+      ]
+    },
+    {
+      "file": "CoreVar.CommandLineInterface.Blazor.10.1.0-dev.20260910.1.nupkg",
+      "sha256": "b4848407993ee8a7c56cf7a5a3ca373d2128ca74493c334058aa016a44cf1ad8",
+      "dependencies": [
+        {
+          "id": "CoreVar.CommandLineInterface",
+          "version": "10.1.0-dev.20260910.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Components.Web",
+          "version": "10.0.0",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "CoreVar.CommandLineInterface",
+          "version": "10.1.0-dev.20260910.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "Microsoft.AspNetCore.Components.Web",
+          "version": "8.0.8",
+          "exclude": "Build,Analyzers"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "status": "passed",
+    "phase": "local",
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "sources": [
+      "prepared local package bundle",
+      "https://api.nuget.org/v3/index.json"
+    ],
+    "packageVersion": "10.1.0-dev.20260910.1",
+    "packageSha256": {
+      "corevar.commandlineinterface": "d1551fab0df3b4e41f1ca9f7811ae592da2058b0def8d029fce1334aed567d12",
+      "corevar.commandlineinterface.abstractions": "4616815f5b29610440f876bdfc15f3db93fcf7a79955e3ccc369081034dfd8ac",
+      "corevar.commandlineinterface.blazor": "b4848407993ee8a7c56cf7a5a3ca373d2128ca74493c334058aa016a44cf1ad8"
+    },
+    "lockedFreshCache": false
+  },
+  "internalDependencyPolicy": "SDK minimum dependency ranges; exact root Blazor reference and locked transitive closure verified all three packages at the release version.",
+  "feedVerification": {
+    "status": "passed",
+    "phase": "mapped-feed",
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "sources": [
+      "https://pkgs.dev.azure.com/corevar/_packaging/CoreVar-Toolkit/nuget/v3/index.json",
+      "https://api.nuget.org/v3/index.json"
+    ],
+    "packageVersion": "10.1.0-dev.20260910.1",
+    "packageSha256": {
+      "corevar.commandlineinterface": "d1551fab0df3b4e41f1ca9f7811ae592da2058b0def8d029fce1334aed567d12",
+      "corevar.commandlineinterface.abstractions": "4616815f5b29610440f876bdfc15f3db93fcf7a79955e3ccc369081034dfd8ac",
+      "corevar.commandlineinterface.blazor": "b4848407993ee8a7c56cf7a5a3ca373d2128ca74493c334058aa016a44cf1ad8"
+    },
+    "lockedFreshCache": true,
+    "preparedHashesMatch": true,
+    "sourceMapping": {
+      "CoreVar.*": "CoreVar Toolkit",
+      "*": "nuget.org (less-specific match)"
+    }
+  },
+  "overwritePolicy": "Never overwrite; no skip-duplicate; stop on conflicts.",
+  "verifiedAtUtc": "2026-09-10T22:47:21.930399+00:00",
+  "feedOnlyVerification": {
+    "status": "failed",
+    "reason": "NU1101: Microsoft.AspNetCore.App.Internal.Assets is unavailable from Toolkit; the .NET 10 Web SDK requests this external dependency."
+  },
+  "scope": "Private CoreVar Toolkit publication of Abstractions, Core and Blazor only. No public NuGet release or portal deployment.",
+  "consumerLockSha256": "de5f5ef0efb4bb73407b74b1d04de07d45ecd4eb199b4a7c8a14e241d77ac39b"
+}

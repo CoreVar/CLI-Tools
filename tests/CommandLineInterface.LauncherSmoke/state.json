@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "product": "smoke",
+  "version": "1.0.0",
+  "channel": "stable",
+  "catalog": "https://example.invalid/catalog.json",
+  "provider": "direct",
+  "entrypoint": "smoke",
+  "installationId": "launcher-smoke"
+}

@@ -11,6 +11,13 @@ namespace CoreVar.CommandLineInterface.Runtime;
 
 public class CommandTreeArgument(string name)
 {
+    public bool PromptIfMissing { get; set; }
+
+    public string? PromptLabel { get; set; }
+
+    public bool Secret { get; set; }
+
+
     public string Name => name;
 
     public string? Description { get; set; }
@@ -22,4 +29,12 @@ public class CommandTreeArgument(string name)
     public List<Action<IHostApplicationBuilder>>? HostBuilders { get; set; }
     
     public List<Action<IHost>>? HostSetups { get; set; }
+
+    public object? DefaultValue { get; set; }
+
+    public bool IsVariadic { get; set; }
+
+    public List<Func<object?, string?>> Validators { get; set; } = [];
+
+    public List<string> Completions { get; set; } = [];
 }

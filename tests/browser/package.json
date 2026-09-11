@@ -1,0 +1,8 @@
+{
+  "name": "cli-tools-browser-tests",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": { "test": "node --test terminal-scroll.test.mjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}
