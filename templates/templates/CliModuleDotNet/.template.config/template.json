@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CoreVar",
+  "classifications": ["Console", "CLI", "Module"],
+  "identity": "CoreVar.CommandLineInterface.Module.DotNet",
+  "name": "CoreVar external CLI module (.NET)",
+  "shortName": "corevar-module-dotnet",
+  "sourceName": "CliModule",
+  "preferNameDirectory": true
+}

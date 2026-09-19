@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "CoreVar.CommandLineInterface.Blazor": {
+        "type": "Direct",
+        "requested": "[10.1.0-dev.20260910.1, 10.1.0-dev.20260910.1]",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "kW1QB2qGAjR0P4dhVxzdwu4l7/IzBYmZsoLxaR4UaHzc3Z5ozpeLHCzAKH/bxFeU0cWRJ+4pz2P7rGuFj4ysgg==",
+        "dependencies": {
+          "CoreVar.CommandLineInterface": "10.1.0-dev.20260910.1"
+        }
+      },
+      "Microsoft.AspNetCore.App.Internal.Assets": {
+        "type": "Direct",
+        "requested": "[10.0.11, )",
+        "resolved": "10.0.11",
+        "contentHash": "tYYYBZsuF2DSz1I3hcfB8qC4nNekIKufkYZOJ2R28fNK3PkS7fJao/mIX5H84NH94UACZQ4dhvt8GDlkrJFwLg=="
+      },
+      "CoreVar.CommandLineInterface": {
+        "type": "Transitive",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "pnMpe+AqLykjF1M9UC9jCasWQ3H0/8bFwLagq5vOhBhzwtRAGmjvJb3+6OGOiGotWIRFmlbpSvm1Csa1Ou4IWw==",
+        "dependencies": {
+          "CoreVar.CommandLineInterface.Abstractions": "10.1.0-dev.20260910.1"
+        }
+      },
+      "CoreVar.CommandLineInterface.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "9026OcSbAd22mazGeKJL40+rnWJF/rsdfr9uVmGB8P+13C8PdiKkvlrr8L/3oXQq9qXiQrenKk6IjdVEZhJXxA=="
+      }
+    },
+    "net8.0": {
+      "CoreVar.CommandLineInterface.Blazor": {
+        "type": "Direct",
+        "requested": "[10.1.0-dev.20260910.1, 10.1.0-dev.20260910.1]",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "kW1QB2qGAjR0P4dhVxzdwu4l7/IzBYmZsoLxaR4UaHzc3Z5ozpeLHCzAKH/bxFeU0cWRJ+4pz2P7rGuFj4ysgg==",
+        "dependencies": {
+          "CoreVar.CommandLineInterface": "10.1.0-dev.20260910.1"
+        }
+      },
+      "CoreVar.CommandLineInterface": {
+        "type": "Transitive",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "pnMpe+AqLykjF1M9UC9jCasWQ3H0/8bFwLagq5vOhBhzwtRAGmjvJb3+6OGOiGotWIRFmlbpSvm1Csa1Ou4IWw==",
+        "dependencies": {
+          "CoreVar.CommandLineInterface.Abstractions": "10.1.0-dev.20260910.1"
+        }
+      },
+      "CoreVar.CommandLineInterface.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.1.0-dev.20260910.1",
+        "contentHash": "9026OcSbAd22mazGeKJL40+rnWJF/rsdfr9uVmGB8P+13C8PdiKkvlrr8L/3oXQq9qXiQrenKk6IjdVEZhJXxA=="
+      }
+    }
+  }
+}

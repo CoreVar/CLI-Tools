@@ -1,0 +1,1 @@
+# Pin runtime dependencies here. The CoreVar installer creates a private .venv.

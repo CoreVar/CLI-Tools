@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><LangVersion>latest</LangVersion>
+    <AssemblyName>corevar-cli-launcher</AssemblyName><RootNamespace>CoreVar.CommandLineInterface.Launcher</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible><PublishAot>true</PublishAot>
+    <Title>CoreVar CLI Launcher</Title><Authors>Jeff Scherrer</Authors><Company>CoreVar, LLC</Company>
+    <Description>Stable, Native-AOT launcher for transactional CoreVar CLI installations.</Description>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\CommandLineInterface.Distribution\CommandLineInterface.Distribution.csproj" /></ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "CliModule",
+  "version": "1.0.0",
+  "description": "An isolated Node.js CoreVar CLI module",
+  "runtime": { "kind": "node", "provisioning": "system", "version": ">=20", "packageDirectory": "." },
+  "entrypoints": { "any": { "path": "module.js" } },
+  "commands": [{ "name": "hello", "description": "Greets someone from Node.js", "arguments": [{ "name": "name", "required": false }] }]
+}

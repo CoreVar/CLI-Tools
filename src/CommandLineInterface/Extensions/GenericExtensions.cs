@@ -311,6 +311,7 @@ public static class GenericExtensions
         else if (typeof(T) == typeof(DateTimeOffset?))
             commandOptionBuilderInternals.GetValueHandler = BuilderUtilities.TryGetDateTimeOffsetOption;
 
+        commandOptionBuilderInternals.GetValueHandler = BuilderUtilities.TryGetOption<T>;
         return commandOptionBuilder;
     }
 
@@ -383,6 +384,7 @@ public static class GenericExtensions
 
         executableBuilderInternals.Arguments.Add(commandArgumentBuilder);
 
+        commandArgumentBuilderInternals.GetValueHandler = BuilderUtilities.TryGetArgument<T>;
         return commandArgumentBuilder;
     }
 

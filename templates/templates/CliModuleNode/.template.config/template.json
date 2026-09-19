@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CoreVar",
+  "classifications": ["CLI", "Module", "Node"],
+  "identity": "CoreVar.CommandLineInterface.Module.Node",
+  "name": "CoreVar external CLI module (Node.js)",
+  "shortName": "corevar-module-node",
+  "sourceName": "CliModule",
+  "preferNameDirectory": true
+}

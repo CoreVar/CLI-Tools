@@ -5,4 +5,6 @@ public interface ICommandExecutionContextInternals
 
     string[] Arguments { get; set; }
 
+    CancellationToken CancellationToken { get; set; }
+
 }

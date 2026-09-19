@@ -38,6 +38,23 @@ public class ConsoleApplicationService(GreetingService greetingService)
             });
         });
 
+        builder.Command("wait", waitCommand => waitCommand.OnExecute(async context =>
+        {
+            await context.Console.WriteLine("Waiting for 30 seconds. Press Ctrl+C to interrupt.");
+            await Task.Delay(TimeSpan.FromSeconds(30), context.CancellationToken);
+        }));
+
+        builder.Command("demo", demoCommand => demoCommand.OnExecute(async context =>
+        {
+            await context.Console.WriteLine("\u001b[32;1mANSI color is enabled.\u001b[0m");
+            for (var progress = 0; progress <= 100; progress += 25)
+            {
+                await context.Console.Write($"Progress: {progress,3}%\r");
+                await Task.Delay(80, context.CancellationToken);
+            }
+            await context.Console.WriteLine("Progress: 100%");
+        }));
+
         App = builder.Build();
 
         await App.StartAsync();

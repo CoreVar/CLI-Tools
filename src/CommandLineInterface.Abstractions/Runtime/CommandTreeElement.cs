@@ -1,5 +1,7 @@
 ﻿using CoreVar.CommandLineInterface.Builders;
 using Microsoft.Extensions.Hosting;
+using CoreVar.CommandLineInterface.Execution;
+using CoreVar.CommandLineInterface.Validation;
 
 namespace CoreVar.CommandLineInterface.Runtime;
 
@@ -29,4 +31,14 @@ public class CommandTreeElement(CommandLineOptions commandLineOptions, string na
     public Func<string, bool>? HelpOptionComparer { get; set; }
     
     public bool DisableHelp { get; set; }
+
+    public List<CommandMiddleware> Middleware { get; set; } = [];
+
+    public List<Func<CommandExecutionContext, ValueTask<ValidationResult>>> Validators { get; set; } = [];
+
+    public HashSet<string> Aliases { get; set; } = [];
+
+    public bool IsHidden { get; set; }
+
+    public string? DeprecationMessage { get; set; }
 }

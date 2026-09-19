@@ -14,8 +14,12 @@ public static class BlazorHostApplicationBuilderExtensions
     public static IHostApplicationBuilder AddBlazorConsoleControl(this IHostApplicationBuilder builder)
     {
         builder.Services
+            .AddSingleton<BlazorFileSystem>()
+            .AddSingleton<ICommandFileSystem>(sp => sp.GetRequiredService<BlazorFileSystem>())
             .AddSingleton<BlazorConsoleControl>()
-            .AddSingleton<IConsoleControl>(sp => sp.GetRequiredService<BlazorConsoleControl>());
+            .AddSingleton<IConsoleControl>(sp => sp.GetRequiredService<BlazorConsoleControl>())
+            .AddSingleton<IBrowserTerminal>(sp => sp.GetRequiredService<BlazorConsoleControl>())
+            .AddSingleton<IBrowserTerminalSession, BoundCliTerminalSession>();
 
         return builder;
     }

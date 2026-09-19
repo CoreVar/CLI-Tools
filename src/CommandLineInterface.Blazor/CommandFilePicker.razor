@@ -1,0 +1,92 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Web
+@implements IDisposable
+
+@if (Files.PendingRequest is { } request)
+{
+    <section class="terminal-file-request" aria-label="File required" @onkeydown="OnKeyDown">
+        <p role="status">Execution is waiting for a file.</p>
+        <label for="@_inputId">@request.Label</label>
+        @if (!request.IsInferred) { <div class="terminal-file-path">@request.Path</div> }
+        <InputFile @key="(request.Id, _attempt)" id="@_inputId" OnChange="args => SupplyAsync(request, args)" disabled="@_uploading" />
+        <small>Maximum file size: @(request.MaxFileBytes / 1024 / 1024) MB. Files stay in this terminal session.</small>
+        @if (_uploading) { <p role="status">Loading file…</p> }
+        @if (_error is not null) { <p role="alert">@_error</p> }
+        <button type="button" @onclick="() => Files.CancelRequest(request.Id)">Cancel command</button>
+        @if (Files.CachedPaths.Count > 0)
+        {
+            <button type="button" @onclick="Files.Clear">Clear cached files</button>
+        }
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public BlazorFileSystem Files { get; set; } = default!;
+    private readonly string _inputId = "cli-file-" + Guid.NewGuid().ToString("N");
+    private readonly CancellationTokenSource _lifetime = new();
+    private BlazorFileSystem? _attached;
+    private IDisposable? _lease;
+    private Guid? _requestId;
+    private bool _uploading;
+    private string? _error;
+    private int _attempt;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_attached, Files)) return;
+        Detach();
+        _attached = Files;
+        _lease = Files.AttachPicker();
+        Files.Changed += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs args) => _ = InvokeAsync(() =>
+    {
+        if (_requestId != Files.PendingRequest?.Id)
+        {
+            _requestId = Files.PendingRequest?.Id;
+            _error = null;
+        }
+        StateHasChanged();
+    });
+
+    private async Task SupplyAsync(BrowserFileRequest request, InputFileChangeEventArgs args)
+    {
+        var files = Files;
+        _uploading = true;
+        _error = null;
+        try
+        {
+            await using var stream = args.File.OpenReadStream(request.MaxFileBytes, _lifetime.Token);
+            await files.SupplyAsync(request.Id, stream, _lifetime.Token);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) when (!_lifetime.IsCancellationRequested)
+        {
+            if (files.PendingRequest?.Id == request.Id)
+                _error = "The file could not be loaded. Check its size and available cache space, then try again or cancel.";
+        }
+        finally { _uploading = false; _attempt++; }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs args)
+    {
+        if ((args.Key == "Escape" || ((args.CtrlKey || args.MetaKey) && args.Key.Equals("c", StringComparison.OrdinalIgnoreCase))) && Files.PendingRequest is { } request)
+            Files.CancelRequest(request.Id);
+    }
+
+    private void Detach()
+    {
+        if (_attached is not null) _attached.Changed -= OnChanged;
+        _lease?.Dispose();
+        _lease = null;
+        _attached = null;
+    }
+
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        Detach();
+        _lifetime.Dispose();
+    }
+}

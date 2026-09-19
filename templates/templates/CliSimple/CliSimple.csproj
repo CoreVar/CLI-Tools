@@ -7,7 +7,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="CoreVar.CommandLineInterface" Version="1.0" />
+    <PackageReference Include="CoreVar.CommandLineInterface" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,0 +1,27 @@
+name: Publish a CLI to GitHub Pages
+on:
+  workflow_dispatch:
+    inputs:
+      version: { description: Version, required: true }
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 10.0.x }
+      - run: dotnet publish src/MyCli/MyCli.csproj -c Release -r linux-x64 --self-contained -o out/linux-x64
+      - run: dotnet publish src/CommandLineInterface.Launcher/CommandLineInterface.Launcher.csproj -f net10.0 -c Release -r linux-x64 --self-contained -p:PublishAot=true -o out/launcher
+      - env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          PUBLIC_BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: |
+          dotnet tool install --global CoreVar.CliTools
+          cli-tools package --source out/linux-x64 --launcher out/launcher/corevar-cli-launcher --output mycli-linux-x64.zip
+          cli-tools publish static-cli --root docs --public-base "$PUBLIC_BASE" --tenant public --product mycli --version "$RELEASE_VERSION" --rid linux-x64 --file mycli-linux-x64.zip
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Publish CLI ${{ inputs.version }}
+          file_pattern: docs

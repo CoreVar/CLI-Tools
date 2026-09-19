@@ -1,0 +1,13 @@
+services:
+  registry:
+    build:
+      context: ../..
+      dockerfile: src/CommandLineInterface.Registry/Dockerfile
+    ports: ["8080:8080"]
+    environment:
+      COREVAR_REGISTRY_API_KEYS: "demo=change-this-key"
+    volumes:
+      - corevar-cli-data:/data
+    restart: unless-stopped
+volumes:
+  corevar-cli-data:

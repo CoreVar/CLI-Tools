@@ -1,0 +1,14 @@
+{
+  "product": "CoreVar CLI Tools",
+  "publisher": "CoreVar",
+  "version": "1.0.0",
+  "sourceDirectory": "../../.artifacts/corevar-win-x64",
+  "executable": "cli-tools.exe",
+  "upgradeCode": "970e42f6-87e1-4bf0-a52a-14bdd918fd67",
+  "bundleUpgradeCode": "b652bc0a-45b3-4e3b-b68b-105890812d42",
+  "architecture": "x64",
+  "scope": "user",
+  "outputDirectory": "../../.artifacts/corevar-installer",
+  "licenseUrl": "https://github.com/corevar/cli-tools",
+  "supportUrl": "https://github.com/corevar/cli-tools/issues"
+}

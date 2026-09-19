@@ -1,0 +1,1 @@
+Console.WriteLine(typeof(CoreVar.CommandLineInterface.CommandLineConsole).FullName);
