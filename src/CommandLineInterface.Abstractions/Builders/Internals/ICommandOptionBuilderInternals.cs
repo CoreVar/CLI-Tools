@@ -20,6 +20,8 @@ public interface ICommandOptionBuilderInternals : IBuilderInternals
 
     string? PromptLabel { get; set; }
 
+    bool InputFile { get; set; }
+
     bool Secret { get; set; }
 
     bool IsRequired { get; set; }

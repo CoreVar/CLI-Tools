@@ -15,6 +15,7 @@ public interface IBrowserTerminal
 public interface IBrowserTerminalSession
 {
     BlazorConsoleControl Console { get; }
+    BlazorFileSystem? Files => null;
     ValueTask SubmitAsync(string input, CancellationToken cancellationToken = default);
     ValueTask InterruptAsync(CancellationToken cancellationToken = default);
     ValueTask ClearAsync(CancellationToken cancellationToken = default);
@@ -22,9 +23,10 @@ public interface IBrowserTerminalSession
 }
 
 /// <summary>Safe default session that forwards input only to the configured CLI command tree.</summary>
-public sealed class BoundCliTerminalSession(BlazorConsoleControl console) : IBrowserTerminalSession
+public sealed class BoundCliTerminalSession(BlazorConsoleControl console, BlazorFileSystem? files = null) : IBrowserTerminalSession
 {
     public BlazorConsoleControl Console { get; } = console;
+    public BlazorFileSystem? Files { get; } = files;
     public ValueTask SubmitAsync(string input, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

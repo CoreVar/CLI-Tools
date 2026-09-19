@@ -16,6 +16,8 @@ internal static class CommandPromptBinding
         if (executing.Options?.TryGetValue("--no-prompt", out var noPrompt) == true && !noPrompt.Option.AcceptsValue)
             context.EnablePrompts = false;
 
+        await CommandFileBinding.FillAsync(executing, context);
+
         foreach (var option in executing.Element.Options?.Values ?? Enumerable.Empty<CommandTreeOption>())
         {
             if (!option.PromptIfMissing || executing.Options?.ContainsKey(option.Name) == true) continue;

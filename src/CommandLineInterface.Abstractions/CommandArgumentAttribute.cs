@@ -13,6 +13,8 @@ public class CommandArgumentAttribute(string name) : Attribute
 
     public string? PromptLabel { get; set; }
 
+    public bool InputFile { get; set; }
+
     public bool Secret { get; set; }
 
 

@@ -27,6 +27,8 @@ public abstract class CommandOptionBuilder(string name, CommandLineOptions comma
 
     string? ICommandOptionBuilderInternals.PromptLabel { get; set; }
 
+    bool ICommandOptionBuilderInternals.InputFile { get; set; }
+
     bool ICommandOptionBuilderInternals.Secret { get; set; }
 
     bool ICommandOptionBuilderInternals.IsRequired { get; set; }

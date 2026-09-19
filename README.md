@@ -86,6 +86,7 @@ The optional registry can run in your own environment with `docker compose -f de
 ## Guides and examples
 
 - [Command authoring guide](docs/v10.md): binding, middleware, help/completion, testing, and generated documentation.
+- [Portable command files](docs/command-files.md): filename metadata, Blazor file selection, session caches, and the shared native/browser file API.
 - [Installation and signing](docs/installers.md): quiet installers, publisher branding, native MSI/Burn, signing keys, and release policy.
 - [Independent distribution example](examples/05%20-%20DistributionRecipe/README.md): signed publication, install, native module dispatch, update, and failure recovery without a company account.
 - [Distribution protocol](docs/vnext-distribution.md): architecture and protocol details; consult executable tests and the installer guide for implemented behavior.

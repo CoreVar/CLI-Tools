@@ -9,13 +9,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - run: npm install --global pnpm@11.19.0
       - run: pnpm --dir tests/browser install --frozen-lockfile
       - run: pnpm --dir tests/browser exec playwright install --with-deps chromium
-      - name: Browser terminal streaming and scroll interruption
+      - name: Browser terminal streaming, file requests and cancellation
         run: pnpm --dir tests/browser test
   test:
     strategy:

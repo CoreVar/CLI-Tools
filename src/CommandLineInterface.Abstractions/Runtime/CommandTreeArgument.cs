@@ -15,6 +15,8 @@ public class CommandTreeArgument(string name)
 
     public string? PromptLabel { get; set; }
 
+    public bool InputFile { get; set; }
+
     public bool Secret { get; set; }
 
 

@@ -40,9 +40,13 @@
                type="@(_consoleControl?.IsInputSecret == true ? "password" : "text")"
                value="@_text" @oninput="OnInput" size="@Math.Max(1, _text.Length + 1)"
                autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
-               aria-label="Command input" disabled="@(_consoleControl is null)" />
+               aria-label="Command input" disabled="@(_consoleControl is null || _files?.PendingRequest is not null)" />
     </div>
-    @if (_completionItems.Count > 0)
+    @if (_files is not null)
+    {
+        <CommandFilePicker Files="_files" />
+    }
+    @if (_completionItems.Count > 0 && _files?.PendingRequest is null)
     {
         <div class="terminal-completions" role="listbox" aria-label="Command completions">
             @foreach (var item in _completionItems)
@@ -70,6 +74,8 @@
     private IBrowserTerminalSession? _session;
     private IBrowserTerminalSession? _sessionParameter;
     private BlazorConsoleControl? _consoleControl;
+    private BlazorFileSystem? _files;
+    private BlazorFileSystem? _fileSystemParameter;
     private IJSObjectReference? _module;
     private IJSObjectReference? _terminalHandle;
     private DotNetObjectReference<CommandLineConsole>? _selfReference;
@@ -78,6 +84,8 @@
 
     [Parameter] public CliApp? CliApp { get; set; }
     [Parameter] public IBrowserTerminalSession? Session { get; set; }
+    /// <summary>Optional file provider for a custom session; must also be registered in the command host.</summary>
+    [Parameter] public BlazorFileSystem? FileSystem { get; set; }
     [Parameter] public bool AutoFocus { get; set; } = true;
     [Parameter] public int HistoryLimit { get; set; } = 100;
     [Parameter] public int MaxLines { get; set; } = 2_000;
@@ -86,7 +94,7 @@
 
     protected override void OnParametersSet()
     {
-        if (ReferenceEquals(_cliApp, CliApp) && ReferenceEquals(_sessionParameter, Session))
+        if (ReferenceEquals(_cliApp, CliApp) && ReferenceEquals(_sessionParameter, Session) && ReferenceEquals(_fileSystemParameter, FileSystem))
         {
             if (_consoleControl is not null) _consoleControl.MaxLines = MaxLines;
             return;
@@ -94,11 +102,14 @@
         DetachConsole();
         _cliApp = CliApp;
         _sessionParameter = Session;
+        _fileSystemParameter = FileSystem;
         _session = Session;
         if (_session is null && _cliApp is not null)
             _session = _cliApp.Host.Services.GetService<IBrowserTerminalSession>()
                 ?? new BoundCliTerminalSession(_cliApp.Host.Services.GetRequiredService<BlazorConsoleControl>());
         if (_session is null) return;
+        _files = FileSystem ?? _session.Files ?? _cliApp?.Host.Services.GetService<BlazorFileSystem>();
+        if (_files is not null) _files.Changed += OnConsoleLinesChanged;
         _consoleControl = _session.Console;
         _consoleControl.MaxLines = MaxLines;
         _consoleControl.LinesChanged += OnConsoleLinesChanged;
@@ -127,6 +138,11 @@
     public async Task HandleTerminalKey(string key, bool ctrlKey, bool shiftKey)
     {
         if (_consoleControl is null) return;
+        if (_files?.PendingRequest is { } request)
+        {
+            if (key == "Escape" || (ctrlKey && key == "c")) _files.CancelRequest(request.Id);
+            return;
+        }
         switch (key)
         {
             case "Enter": await SubmitAsync(); break;
@@ -257,6 +273,8 @@
 
     private void DetachConsole()
     {
+        if (_files is not null) _files.Changed -= OnConsoleLinesChanged;
+        _files = null;
         if (_consoleControl is not null) _consoleControl.LinesChanged -= OnConsoleLinesChanged;
         _consoleControl = null;
     }

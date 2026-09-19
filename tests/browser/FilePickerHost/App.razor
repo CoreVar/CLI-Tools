@@ -1,0 +1,16 @@
+@page "/"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/" />
+    <link rel="stylesheet" href="FilePickerHost.styles.css" />
+    <title>Terminal file picker test</title>
+</head>
+<body style="background:#101820;color:#eee;margin:24px;font-family:system-ui">
+    <h1>Terminal files</h1>
+    <TerminalFixture @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

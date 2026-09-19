@@ -13,6 +13,10 @@ public class CommandExecutionContext(IServiceProvider services, IConsoleControl 
 {
     private string[]? _arguments;
     private CommandTreeContext? _commandTreeContext;
+    private ICommandFileSystem? _files;
+
+    /// <summary>Files for this execution, with host interaction policy and command cancellation applied.</summary>
+    public ICommandFileSystem Files => _files ??= new ExecutionFileSystem(this);
 
     public string[] Arguments => _arguments!;
 

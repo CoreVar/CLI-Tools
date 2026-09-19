@@ -30,6 +30,8 @@ public class CommandArgumentBuilder<T>(string name, CommandLineOptions commandLi
 
     string? ICommandArgumentBuilderInternals.PromptLabel { get; set; }
 
+    bool ICommandArgumentBuilderInternals.InputFile { get; set; }
+
     bool ICommandArgumentBuilderInternals.Secret { get; set; }
 
     bool ICommandArgumentBuilderInternals.IsRequired { get; set; }

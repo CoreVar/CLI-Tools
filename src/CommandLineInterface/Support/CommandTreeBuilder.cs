@@ -91,6 +91,7 @@ public class CommandTreeBuilder
             PromptIfMissing = builderInternals.PromptIfMissing,
             PromptLabel = builderInternals.PromptLabel,
             Secret = builderInternals.Secret,
+            InputFile = builderInternals.InputFile,
             Aliases = builderInternals.Aliases,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
@@ -131,6 +132,7 @@ public class CommandTreeBuilder
             PromptIfMissing = builderInternals.PromptIfMissing,
             PromptLabel = builderInternals.PromptLabel,
             Secret = builderInternals.Secret,
+            InputFile = builderInternals.InputFile,
             HostBuilders = builderInternals.HostBuilders,
             HostSetups = builderInternals.HostSetups,
             Description = builderInternals.Description

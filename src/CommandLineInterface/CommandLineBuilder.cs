@@ -89,6 +89,7 @@ public class CommandLineBuilder(string name, CommandLineOptions options) : IComm
             .AddSingleton(options)
             .AddSingleton<IConsoleControl, NativeConsoleControl>()
             .AddScoped<ICommandPromptService, NativeCommandPromptService>()
+            .AddScoped<ICommandFileSystem, NativeCommandFileSystem>()
             .AddSingleton<IElevationService, ProcessElevationService>()
             .AddSingleton<CommandExecutionService>()
             .AddSingleton<ICommandExecutor>(sp => sp.GetRequiredService<CommandExecutionService>())

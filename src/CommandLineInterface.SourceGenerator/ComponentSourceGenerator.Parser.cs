@@ -158,6 +158,7 @@ partial class ComponentSourceGenerator
                                 else if (named.Key == "PromptIfMissing") commandOption.PromptIfMissing = (bool)named.Value.Value!;
                                 else if (named.Key == "PromptLabel") commandOption.PromptLabel = (string?)named.Value.Value;
                                 else if (named.Key == "Secret") commandOption.Secret = (bool)named.Value.Value!;
+                                else if (named.Key == "InputFile") commandOption.InputFile = (bool)named.Value.Value!;
                                 else if (named.Key == "Hidden") commandOption.IsHidden = (bool)named.Value.Value!;
                                 else if (named.Key == "Deprecated") commandOption.DeprecationMessage = (string?)named.Value.Value;
                                 else if (named.Key == "Completions")
@@ -190,6 +191,7 @@ partial class ComponentSourceGenerator
                                 else if (named.Key == "PromptIfMissing") commandArgument.PromptIfMissing = (bool)named.Value.Value!;
                                 else if (named.Key == "PromptLabel") commandArgument.PromptLabel = (string?)named.Value.Value;
                                 else if (named.Key == "Secret") commandArgument.Secret = (bool)named.Value.Value!;
+                                else if (named.Key == "InputFile") commandArgument.InputFile = (bool)named.Value.Value!;
                                     else if (named.Key == "Completions")
                                         foreach (var value in named.Value.Values) commandArgument.Completions.Add((string)value.Value!);
                                 }
@@ -304,6 +306,7 @@ partial class ComponentSourceGenerator
                                 else if (named.Key == "PromptIfMissing") option.PromptIfMissing = (bool)named.Value.Value!;
                                 else if (named.Key == "PromptLabel") option.PromptLabel = (string?)named.Value.Value;
                                 else if (named.Key == "Secret") option.Secret = (bool)named.Value.Value!;
+                                else if (named.Key == "InputFile") option.InputFile = (bool)named.Value.Value!;
                             else if (named.Key == "Hidden") option.IsHidden = (bool)named.Value.Value!;
                             else if (named.Key == "Deprecated") option.DeprecationMessage = (string?)named.Value.Value;
                             else if (named.Key == "Completions") foreach (var value in named.Value.Values) option.Completions.Add((string)value.Value!);
@@ -326,6 +329,7 @@ partial class ComponentSourceGenerator
                                 else if (named.Key == "PromptIfMissing") argument.PromptIfMissing = (bool)named.Value.Value!;
                                 else if (named.Key == "PromptLabel") argument.PromptLabel = (string?)named.Value.Value;
                                 else if (named.Key == "Secret") argument.Secret = (bool)named.Value.Value!;
+                                else if (named.Key == "InputFile") argument.InputFile = (bool)named.Value.Value!;
                             else if (named.Key == "Completions") foreach (var value in named.Value.Values) argument.Completions.Add((string)value.Value!);
                         }
                     }

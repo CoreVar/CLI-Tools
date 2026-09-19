@@ -220,6 +220,12 @@ using Microsoft.Extensions.DependencyInjection;
             sourceBuilder.Append($@"{new string(' ', indent * 4)}var {argumentParameterName} = {commandParameterName}.Argument<{argument.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(argument.Name)})");
             indent++;
 
+            if (argument.InputFile)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.InputFile({(argument.PromptLabel is null ? "null" : CompilerSafeString(argument.PromptLabel))})");
+            }
+
             if (argument.PromptIfMissing)
             {
                 sourceBuilder.AppendLine();
@@ -276,6 +282,12 @@ using Microsoft.Extensions.DependencyInjection;
             else
                 sourceBuilder.Append($@"{new string(' ', indent * 4)}var {optionParameterName} = {commandParameterName}.Option<{option.TargetPropertyType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>({CompilerSafeString(option.Name)})");
             indent++;
+
+            if (option.InputFile)
+            {
+                sourceBuilder.AppendLine();
+                sourceBuilder.Append($@"{new string(' ', indent * 4)}.InputFile({(option.PromptLabel is null ? "null" : CompilerSafeString(option.PromptLabel))})");
+            }
 
             if (option.PromptIfMissing)
             {
