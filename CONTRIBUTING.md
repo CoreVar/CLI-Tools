@@ -37,6 +37,8 @@ dotnet pack templates/ProjectTemplates.csproj -c Release -o .artifacts/packages 
 
 Pack the abstractions package at the same version when consuming the core package locally. `tests/package_consumer.py` performs the complete isolated sequence. Template packaging stamps the generated projects with the package version; it does not modify source templates.
 
+On a push to a development branch, Contributor CI runs the platform checks and then uploads all eight NuGet packages as the `dev-packages` workflow artifact. Packages from one run share a `10.1.0-dev.<run>.<attempt>` version, so download the full artifact when testing a consumer. This workflow does not publish packages to a feed. Release and prerelease branches use their separate publishing workflows.
+
 ## Choosing where to contribute
 
 | Project | Responsibility |
