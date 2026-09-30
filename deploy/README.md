@@ -37,7 +37,7 @@ cli-tools publish cli \
 
 ## Authentication and authorization
 
-The registry supports CoreID and any standards-compliant OpenID Connect provider.
+The registry supports CoreIdentity and any standards-compliant OpenID Connect provider.
 Configure JWT validation with:
 
 ```yaml
@@ -45,7 +45,7 @@ COREVAR_REGISTRY_OIDC_AUTHORITY: https://identity.example.com/
 COREVAR_REGISTRY_OIDC_AUDIENCE: corevar-cli-registry
 ```
 
-CoreID tokens use the `corevar:tenant`, `permission`, and
+CoreIdentity tokens use the `corevar:tenant`, `permission`, and
 `corevar:registry:resource` claims. Mutating operations require a matching tenant,
 permission, and resource grant. Supported permissions are `release.publish`,
 `release.promote`, `release.revoke`, `module.publish`, `catalog.read`,
