@@ -35,8 +35,12 @@ public sealed class ModuleStore(ModulePaths paths)
         Directory.CreateDirectory(moduleDirectory);
         var target = paths.Current(id);
         var temporary = target + ".new-" + Guid.NewGuid().ToString("N");
-        await using (var stream = File.Create(temporary))
-            await JsonSerializer.SerializeAsync(stream, pointer, ModuleJsonContext.Default.ModuleInstallationPointer, cancellationToken);
-        File.Move(temporary, target, true);
+        try
+        {
+            await using (var stream = File.Create(temporary))
+                await JsonSerializer.SerializeAsync(stream, pointer, ModuleJsonContext.Default.ModuleInstallationPointer, cancellationToken);
+            File.Move(temporary, target, true);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 }

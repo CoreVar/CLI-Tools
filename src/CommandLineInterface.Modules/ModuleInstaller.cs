@@ -15,6 +15,14 @@ public sealed class ModuleInstaller(ModulePaths paths, ModuleStore store, Module
     {
         ModulePaths.ValidateSegment(expectedId); ModulePaths.ValidateSegment(release.Version);
         using var operation = InstallationFiles.AcquireLock(paths.Module(expectedId));
+        return await InstallUnderLockAsync(expectedId, release, catalog, cancellationToken);
+    }
+
+    // Bundle transactions retain all member locks until commit or exact pointer restoration.
+    internal async ValueTask<ModuleManifest> InstallUnderLockAsync(string expectedId, ModuleRelease release,
+        Uri? catalog, CancellationToken cancellationToken)
+    {
+        ModulePaths.ValidateSegment(expectedId); ModulePaths.ValidateSegment(release.Version);
         if (release.Revoked) throw new InvalidOperationException("A revoked module release cannot be installed.");
         Directory.CreateDirectory(paths.Cache);
         var packagePath = Path.Combine(paths.Cache, $"{expectedId}-{release.Version}-{Guid.NewGuid():N}.zip");

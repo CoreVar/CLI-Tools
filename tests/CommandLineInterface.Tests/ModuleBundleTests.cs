@@ -85,6 +85,65 @@ public sealed class ModuleBundleTests : IDisposable
         Assert.Equal(ModuleBundleItemStatus.Failed, Assert.Single(result.Items).Status);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public async Task RequiredFailureOrCancellationRestoresExactPriorState(bool cancel, bool installed)
+    {
+        Directory.CreateDirectory(_root);
+        var release = await CreatePackageAsync("sample", "1.0.0");
+        var catalogPath = Path.Combine(_root, "catalog.json");
+        await File.WriteAllTextAsync(catalogPath, JsonSerializer.Serialize(new ModuleCatalog
+        {
+            Modules = [new ModuleCatalogEntry { Id = "sample", Releases = [release] }]
+        }, ModuleJsonContext.Default.ModuleCatalog));
+        var bundlePath = Path.Combine(_root, "bundle.json");
+        var bundle = new ModuleBundle
+        {
+            Id = "suite", Snapshot = "before", Catalog = new Uri(catalogPath),
+            Modules = [new ModuleBundleMember { Id = "sample", Version = "1.0.0", Sha256 = release.Sha256 }]
+        };
+        var context = new ModuleInstallContext { HostVersion = new(0, 1, 0), Root = Path.Combine(_root, "distribution") };
+        await File.WriteAllTextAsync(bundlePath, JsonSerializer.Serialize(bundle, ModuleJsonContext.Default.ModuleBundle));
+        if (installed)
+            Assert.True((await new ModuleBundleInstaller().InstallAsync(bundlePath, await DigestAsync(bundlePath), context)).IsComplete);
+        var pointerPath = new ModulePaths(context.Root).Current("sample");
+        // Preserve both activation history and exact persisted formatting, not just the version.
+        if (installed) await File.AppendAllTextAsync(pointerPath, "\n");
+        var pointerBefore = installed ? await File.ReadAllBytesAsync(pointerPath) : null;
+        var statePath = Path.Combine(context.Root, "bundle-state.json");
+        var stateBefore = installed ? await File.ReadAllBytesAsync(statePath) : null;
+        bundle.Modules.Add(new ModuleBundleMember
+        {
+            Id = "missing", Version = "1.0.0", Sha256 = new string('0', 64),
+            Catalog = cancel ? new Uri("https://fixture.invalid/cancel") : new Uri(catalogPath)
+        });
+        await File.WriteAllTextAsync(bundlePath, JsonSerializer.Serialize(bundle, ModuleJsonContext.Default.ModuleBundle));
+        using var cancellation = new CancellationTokenSource();
+        using var http = new HttpClient(new CancelCatalogHandler(cancellation));
+        var installer = new ModuleBundleInstaller(http);
+        if (cancel)
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await installer.InstallAsync(bundlePath, await DigestAsync(bundlePath), context, cancellation.Token));
+        else
+            Assert.False((await installer.InstallAsync(bundlePath, await DigestAsync(bundlePath), context)).IsComplete);
+        Assert.Equal(pointerBefore, File.Exists(pointerPath) ? await File.ReadAllBytesAsync(pointerPath) : null);
+        Assert.Equal(stateBefore, File.Exists(statePath) ? await File.ReadAllBytesAsync(statePath) : null);
+        Assert.Empty(Directory.EnumerateFiles(context.Root, "*.new-*", SearchOption.AllDirectories));
+        Assert.Empty(Directory.EnumerateFiles(context.Root, "*.restore-*", SearchOption.AllDirectories));
+    }
+
+    private sealed class CancelCatalogHandler(CancellationTokenSource source) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            source.Cancel();
+            return Task.FromCanceled<HttpResponseMessage>(source.Token);
+        }
+    }
+
     private async ValueTask<ModuleRelease> CreatePackageAsync(string id, string version)
     {
         var package = Path.Combine(_root, "module.zip");
