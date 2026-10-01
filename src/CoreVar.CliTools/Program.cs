@@ -24,14 +24,21 @@ await CliApp.RunAsync(cli => cli
     .Command("sign", command =>
     {
         var file = command.Option<string>("--file").IsRequired();
-        var key = command.Option<string>("--private-key-file").IsRequired();
+        var key = command.Option<string?>("--private-key-file").IsOptional();
+        var keyEnvironment = command.Option<string?>("--private-key-env").IsOptional()
+            .Description("Read the private PEM from this environment variable instead of a file; the variable name is not secret.");
         var keyId = command.Option<string>("--key-id").IsRequired();
         var output = command.Option<string>("--output").IsRequired();
         command.Description("Creates a detached RSA-PSS signature; the private key is read locally and never published.")
             .OnExecute(new Func<CommandExecutionContext, ValueTask>(async context =>
             {
-                var signature = await ArtifactSignature.CreateAsync(context.GetOption(file), context.GetOption(keyId),
-                    await File.ReadAllTextAsync(context.GetOption(key), context.CancellationToken), context.CancellationToken);
+                var keyPath = context.GetOption(key);
+                var keyVariable = context.GetOption(keyEnvironment);
+                if ((keyPath is null) == (keyVariable is null))
+                    throw new ArgumentException("Select exactly one private-key file or environment variable.");
+                var pem = keyPath is not null ? await File.ReadAllTextAsync(keyPath, context.CancellationToken)
+                    : Environment.GetEnvironmentVariable(keyVariable!) ?? throw new InvalidOperationException("Private-key environment variable is not set.");
+                var signature = await ArtifactSignature.CreateAsync(context.GetOption(file), context.GetOption(keyId), pem, context.CancellationToken);
                 await signature.SaveAsync(context.GetOption(output), context.CancellationToken);
                 await context.Console.WriteLine("Created detached signature.");
             }));

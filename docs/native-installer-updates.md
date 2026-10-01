@@ -85,6 +85,12 @@ cli-tools publish native --endpoint https://registry.example/ --tenant publisher
 cli-tools publish native-promote --endpoint https://registry.example/ --tenant publisher --product example --version 1.0.1 --rid win-x64 --channel dev
 ```
 
+For CI secret-store handoffs, use `sign --private-key-env VARIABLE_NAME` instead
+of `--private-key-file`. The private PEM remains in process memory/environment;
+the CLI never writes it to disk or prints it. Set the value only around the child
+invocation and restore/remove it in the owning pipeline's `finally` block. Select
+exactly one key source. The argument is the variable name, never the private key.
+
 Supply registry authentication through `COREVAR_REGISTRY_TOKEN`. The producer policy
 uses the same fields as `NativeInstallerUpdatePolicy`, with the actual reviewed
 publisher/product/company. A mutable producer recipe is a build input; consuming
