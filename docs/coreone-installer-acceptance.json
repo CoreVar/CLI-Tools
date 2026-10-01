@@ -1,0 +1,38 @@
+{
+  "recordedAt": "2026-09-10",
+  "owner": "CLI-Tools",
+  "sourceCommit": "bba914bf17d3ce499ef589cf8a6cadcf96b1f41b",
+  "branch": "features/modules-and-distribution",
+  "status": "cross-platform-ci-verified",
+  "packageReleased": false,
+  "deploymentPerformed": false,
+  "localVerification": {
+    "platform": "Windows",
+    "net8TestsPassed": 82,
+    "net10TestsPassed": 82,
+    "registryTestsPassed": 8,
+    "trxDirectory": ".artifacts/coreone-installer",
+    "unixSymlinkCaseExecuted": false
+  },
+  "ci": {
+    "runId": 34454140365,
+    "url": "https://github.com/CoreVar/CLI-Tools/actions/runs/34454140365",
+    "status": "success",
+    "jobsPassed": ["browser", "ubuntu-latest", "macos-latest", "windows-latest"],
+    "unixSymlinkCaseExecuted": true
+  },
+  "consumerReportedVerification": {
+    "owner": "CoreVar Global CLI",
+    "cliToolsSourceCommit": "bba914bf17d3ce499ef589cf8a6cadcf96b1f41b",
+    "evidence": "CoreCLI/docs/coreone-installation.md",
+    "result": "14 planner assertions and simulated interrupted-enrollment reconciliation, duplicate prevention, issuance-versus-reporting gating, redaction and tenant rejection passed against an exact clean CLI-Tools checkout",
+    "liveRuntimeQualified": false
+  },
+  "remainingIntegrationGates": [
+    "CoreVar Global CLI owns CoreOne recipe, exact dependency closure, Compose fragments and image digests",
+    "Products and CoreControl must supply trusted protected enrollment adapters and authoritative reconciliation contracts",
+    "Real product install/update/uninstall, separate observed connection/reporting, physical devices and M1 remain unqualified",
+    "Network-filesystem, sudden power-loss and multi-machine concurrency behavior require target qualification"
+  ],
+  "handoffRecipients": ["CoreVar Global CLI", "Coordinate Dev Deployment", "CoreVar One"]
+}

@@ -1,0 +1,45 @@
+@implements IAsyncDisposable
+<CommandLineConsole CliApp="_app" AutoFocus="true" />
+
+@code {
+    private CliApp? _app;
+    protected override void OnInitialized()
+    {
+        var builder = CommandLineBuilder.Create("files");
+        builder.EnableRepl();
+        builder.SetupHostBuilder(host =>
+        {
+            host.Services.AddSingleton(new BlazorFileSystemOptions { MaxFileBytes = 1024 * 1024, MaxCacheBytes = 2 * 1024 * 1024 });
+            host.AddBlazorConsoleControl();
+        });
+        builder.Command("read", command =>
+        {
+            var path = command.Option<string>("--file").InputFile("Input document");
+            command.OnExecute(async context =>
+            {
+                await context.Console.WriteLine("HANDLER STARTED");
+                using var stream = await context.Files.OpenReadAsync(context.GetOption(path));
+                await context.Console.WriteLine("CONTENT: " + await new StreamReader(stream).ReadToEndAsync());
+            });
+        });
+        builder.Command("dynamic", command => command.OnExecute(async context =>
+        {
+            using var stream = await context.Files.OpenReadAsync("runtime.txt");
+            await context.Console.WriteLine("DYNAMIC: " + await new StreamReader(stream).ReadToEndAsync());
+        }));
+        builder.Command("write", command => command.OnExecute(async context =>
+        {
+            await context.Files.WriteAllBytesAsync("generated.txt", System.Text.Encoding.UTF8.GetBytes("created"));
+            await context.Console.WriteLine("FILE WRITTEN");
+        }));
+        _app = builder.Build(() => []);
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _app is not null) await _app.StartAsync();
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (_app is not null) { await _app.StopAsync(); await _app.DisposeAsync(); }
+    }
+}

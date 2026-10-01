@@ -25,6 +25,9 @@ internal sealed class KnownTypeSymbols(Compilation compilation)
     public INamedTypeSymbol CommandOptionAttributeType => _commandOptionAttributeType.Value;
     private readonly Lazy<INamedTypeSymbol> _commandOptionAttributeType = new(() => compilation.GetBestTypeByMetadataName("CoreVar.CommandLineInterface.CommandOptionAttribute")!);
 
+    public INamedTypeSymbol CommandOptionAliasAttributeType => _commandOptionAliasAttributeType.Value;
+    private readonly Lazy<INamedTypeSymbol> _commandOptionAliasAttributeType = new(() => compilation.GetBestTypeByMetadataName("CoreVar.CommandLineInterface.CommandOptionAliasAttribute")!);
+
     public INamedTypeSymbol CommandArgumentAttributeType => _commandArgumentAttributeType.Value;
     private readonly Lazy<INamedTypeSymbol> _commandArgumentAttributeType = new(() => compilation.GetBestTypeByMetadataName("CoreVar.CommandLineInterface.CommandArgumentAttribute")!);
 

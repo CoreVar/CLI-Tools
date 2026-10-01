@@ -13,4 +13,10 @@ public class CommandTreeArgumentContext
 
     public required Range ValueRange { get; init; }
 
+    /// <summary>Raw values assigned to this positional argument.</summary>
+    public List<string> Values { get; } = [];
+
+    /// <summary>Gets the original token positions assigned to this argument.</summary>
+    public List<int> Positions { get; } = [];
+
 }

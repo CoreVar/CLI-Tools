@@ -7,6 +7,20 @@ namespace CoreVar.CommandLineInterface;
 public static class CommandArgumentBuilderExtensions
 {
 
+    public static ICommandArgumentBuilder<T> IsRequired<T>(this ICommandArgumentBuilder<T> builder)
+    {
+        var builderInternals = (ICommandArgumentBuilderInternals)builder;
+        builderInternals.IsRequired = true;
+        return builder;
+    }
+
+    public static ICommandArgumentBuilder<T> IsOptional<T>(this ICommandArgumentBuilder<T> builder)
+    {
+        var builderInternals = (ICommandArgumentBuilderInternals)builder;
+        builderInternals.IsRequired = false;
+        return builder;
+    }
+
     /// <summary>
     /// Defines the command argument as having Base64 encoding.
     /// </summary>
