@@ -306,8 +306,11 @@ public class CommandExecutionService(
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_executionTask is not null && _executionTask.IsCompleted)
-            await _executionTask.ConfigureAwait(false);
+        // A one-shot command must finish cancellation cleanup and publish its
+        // exit code before the host returns and disposes its scoped services.
+        // An idle REPL may still be blocked on non-cancellable console input.
+        if (_executionTask is not null && (!appContext.IsReplMode || _executionTask.IsCompleted))
+            await _executionTask.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public ValueTask<int> Execute(params string[] args) => Execute(new CommandExecutionOptions(), args);
