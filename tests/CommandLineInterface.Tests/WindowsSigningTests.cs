@@ -8,6 +8,15 @@ public sealed class WindowsSigningTests : IDisposable
     private static readonly Uri Timestamp = new("https://timestamp.example.test/");
 
     [Fact]
+    public void ExistingJsonRecipeRetainsDefaultBootstrapperExtension()
+    {
+        Directory.CreateDirectory(root);
+        var recipe = Path.Combine(root, "recipe.json");
+        File.WriteAllText(recipe, """{"product":"Example","publisher":"Publisher","version":"1.0.0","sourceDirectory":"payload","executable":"app.exe","upgradeCode":"f4d78af4-ff1e-4692-b652-8cb33e2e8b30","bundleUpgradeCode":"0672bf46-3a15-4025-af45-b35e51c02f8a","outputDirectory":"output"}""");
+        Assert.Equal("WixToolset.Bal.wixext", WindowsInstallerRecipe.Load(recipe).BootstrapperExtension);
+    }
+
+    [Fact]
     public void CertificateStoreRemainsSupported()
     {
         var arguments = WindowsInstaller.SigningArguments("product.exe", new WindowsSigningOptions

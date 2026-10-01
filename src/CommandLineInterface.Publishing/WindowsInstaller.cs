@@ -25,7 +25,7 @@ public sealed class WindowsInstallerRecipe
     public string? IconFile { get; set; }
     public string? ThemeFile { get; set; }
     /// <summary>Extension name or absolute DLL path, allowing pinned WiX versions with renamed bootstrapper assemblies.</summary>
-    public string BootstrapperExtension { get; init; } = "WixToolset.Bal.wixext";
+    public string BootstrapperExtension { get; set; } = "WixToolset.Bal.wixext";
     public string? LicenseUrl { get; init; }
     public string? SupportUrl { get; init; }
     public Uri? DownloadUrl { get; init; }
@@ -39,6 +39,7 @@ public sealed class WindowsInstallerRecipe
         var root = Path.GetDirectoryName(Path.GetFullPath(path))!;
         value.Architecture ??= "x64";
         value.Scope ??= "user";
+        value.BootstrapperExtension ??= "WixToolset.Bal.wixext";
         value.SourceDirectory = Path.GetFullPath(value.SourceDirectory, root);
         value.OutputDirectory = Path.GetFullPath(value.OutputDirectory ?? "dist/windows", root);
         if (value.LogoFile is not null) value.LogoFile = Path.GetFullPath(value.LogoFile, root);
