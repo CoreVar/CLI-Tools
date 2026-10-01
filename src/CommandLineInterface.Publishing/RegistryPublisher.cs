@@ -7,7 +7,29 @@ namespace CoreVar.CommandLineInterface.Publishing;
 
 public sealed class RegistryPublisher(HttpClient? client = null)
 {
-    private readonly HttpClient _client = client ?? new HttpClient();
+    private readonly HttpClient _client = client ?? new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false });
+
+    public async ValueTask<PublishResult> PublishNativeInstallerAsync(Uri endpoint, string tenant, string product,
+        string version, string runtimeIdentifier, string artifact, NativeInstallerUpdatePolicy policy,
+        ArtifactSignature signature, string? token = null, CancellationToken cancellationToken = default)
+    {
+        NativeInstallerUpdateClient.ValidateHttps(endpoint);
+        NativeInstallerUpdateClient.ValidatePolicy(policy);
+        var uri = Resolve(endpoint, $"v1/{Escape(tenant)}/native/products/{Escape(product)}/installers/{Escape(version)}/{Escape(runtimeIdentifier)}/setup.exe");
+        await using var file = new FileStream(artifact, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var digest = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(file, cancellationToken));
+        var release = new NativeInstallerRelease(1, product, runtimeIdentifier, version, new(uri, digest, file.Length));
+        new WindowsNativeInstallerVerifier().Verify(artifact, release, policy);
+        return await PublishAsync(uri, artifact, token, cancellationToken, signature, requireDirectHttps: true);
+    }
+
+    public ValueTask PromoteNativeInstallerAsync(Uri endpoint, string tenant, string product, string channel,
+        string version, string runtimeIdentifier, string? token = null, CancellationToken cancellationToken = default) =>
+        PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/native/products/{Escape(product)}/channels/{Escape(channel)}/{Escape(runtimeIdentifier)}/{Escape(version)}"), token, cancellationToken, requireDirectHttps: true);
+
+    public ValueTask RevokeNativeInstallerAsync(Uri endpoint, string tenant, string product, string version,
+        string runtimeIdentifier, string? token = null, CancellationToken cancellationToken = default) =>
+        PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/native/products/{Escape(product)}/revocations/{Escape(version)}/{Escape(runtimeIdentifier)}"), token, cancellationToken, requireDirectHttps: true);
 
     public ValueTask<PublishResult> PublishCliAsync(Uri endpoint, string tenant, string product, string version,
         string runtimeIdentifier, string artifact, string channel = "stable", string? token = null,
@@ -76,8 +98,9 @@ public sealed class RegistryPublisher(HttpClient? client = null)
         string reason, string? token = null, CancellationToken cancellationToken = default) =>
         PostAsync(Resolve(endpoint, $"v1/{Escape(tenant)}/products/{Escape(product)}/revocations?version={Escape(version ?? string.Empty)}&sha256={Escape(sha256 ?? string.Empty)}&reason={Escape(reason)}"), token, cancellationToken);
 
-    private async ValueTask<PublishResult> PublishAsync(Uri uri, string artifact, string? token, CancellationToken cancellationToken, ArtifactSignature? signature = null)
+    private async ValueTask<PublishResult> PublishAsync(Uri uri, string artifact, string? token, CancellationToken cancellationToken, ArtifactSignature? signature = null, bool requireDirectHttps = false)
     {
+        if (requireDirectHttps) NativeInstallerUpdateClient.ValidateHttps(uri);
         if (signature is not null) await signature.VerifyAsync(artifact, cancellationToken);
         await using var stream = File.OpenRead(artifact);
         using var request = new HttpRequestMessage(HttpMethod.Put, uri) { Content = new StreamContent(stream) };
@@ -90,6 +113,8 @@ public sealed class RegistryPublisher(HttpClient? client = null)
         if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (requireDirectHttps && response.RequestMessage?.RequestUri != uri)
+            throw new HttpRequestException("Native publishing requires a direct registry response.");
         if (!response.IsSuccessStatusCode) throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {body}");
         using var json = JsonDocument.Parse(body);
         var root = json.RootElement;
@@ -97,11 +122,14 @@ public sealed class RegistryPublisher(HttpClient? client = null)
             root.TryGetProperty("sha256", out var sha) ? sha.GetString() : null);
     }
 
-    private async ValueTask PostAsync(Uri uri, string? token, CancellationToken cancellationToken)
+    private async ValueTask PostAsync(Uri uri, string? token, CancellationToken cancellationToken, bool requireDirectHttps = false)
     {
+        if (requireDirectHttps) NativeInstallerUpdateClient.ValidateHttps(uri);
         using var request = new HttpRequestMessage(HttpMethod.Post, uri);
         if (!string.IsNullOrWhiteSpace(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await _client.SendAsync(request, cancellationToken);
+        if (requireDirectHttps && response.RequestMessage?.RequestUri != uri)
+            throw new HttpRequestException("Native publishing requires a direct registry response.");
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"Registry returned {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
     }

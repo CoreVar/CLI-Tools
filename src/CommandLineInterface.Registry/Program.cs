@@ -60,6 +60,54 @@ if (!string.IsNullOrWhiteSpace(options.OidcAuthority))
 }
 
 app.MapHealthChecks("/healthz");
+app.MapGet("/v1/{tenant}/native/products/{product}/channels/{channel}/{rid}/manifest.json", async (HttpRequest request,
+    string tenant, string product, string channel, string rid, FileRegistryStore store, CancellationToken token) =>
+    ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ??
+    (await store.GetNativeInstallerFeedAsync(tenant, product, channel, rid, token) is { } release
+        ? Results.Json(release, NativeInstallerJsonContext.Default.NativeInstallerRelease) : Results.NotFound()));
+app.MapGet("/v1/{tenant}/native/products/{product}/installers/{version}/{rid}/setup.exe", async (HttpRequest request,
+    string tenant, string product, string version, string rid, FileRegistryStore store, CancellationToken token) =>
+    ReadDenied(request, tenant, "artifact.read", $"product:{product}", options) ??
+    (await store.GetNativeInstallerPathAsync(tenant, product, version, rid, token) is { } path
+        ? Results.File(path, "application/octet-stream", enableRangeProcessing: true) : Results.NotFound()));
+app.MapPut("/v1/{tenant}/native/products/{product}/installers/{version}/{rid}/setup.exe", async (HttpRequest request,
+    string tenant, string product, string version, string rid, FileRegistryStore store, CancellationToken token) =>
+{
+    if (options.AllowAnonymousPublish) return Results.Problem("Native publication requires authenticated-only registry configuration.", statusCode: 403);
+    var denied = RegistryAccess.Authorize(request, tenant, "release.publish", $"product:{product}", options); if (denied is not null) return denied;
+    try
+    {
+        var uri = PublicUri(request, options, $"/v1/{Uri.EscapeDataString(tenant)}/native/products/{Uri.EscapeDataString(product)}/installers/{Uri.EscapeDataString(version)}/{Uri.EscapeDataString(rid)}/setup.exe");
+        var release = await store.PublishNativeInstallerAsync(tenant, product, version, rid, request.Body, uri,
+            request.Headers["X-CLI-Signature"].FirstOrDefault(), request.Headers["X-CLI-Signing-Key"].FirstOrDefault(), token);
+        Audit(app, request, tenant, "native.publish", $"product:{product}", version);
+        return Results.Json(new { uri = release.Installer.Url, sha256 = release.Installer.Sha256 });
+    }
+    catch (BundleSnapshotConflictException exception) { return Results.Conflict(new { error = exception.Message }); }
+    catch (Exception exception) when (exception is InvalidDataException or InvalidOperationException or ArgumentException)
+    { return Results.BadRequest(new { error = exception.Message }); }
+});
+app.MapPost("/v1/{tenant}/native/products/{product}/channels/{channel}/{rid}/{version}", async (HttpRequest request,
+    string tenant, string product, string channel, string rid, string version, FileRegistryStore store, CancellationToken token) =>
+{
+    if (options.AllowAnonymousPublish) return Results.Problem("Native promotion requires authenticated-only registry configuration.", statusCode: 403);
+    var denied = RegistryAccess.Authorize(request, tenant, "release.promote", $"product:{product}", options); if (denied is not null) return denied;
+    try { await store.PromoteNativeInstallerAsync(tenant, product, version, rid, channel, token); }
+    catch (KeyNotFoundException) { return Results.NotFound(); }
+    catch (InvalidOperationException exception) { return Results.BadRequest(new { error = exception.Message }); }
+    Audit(app, request, tenant, "native.promote", $"product:{product}", version);
+    return Results.NoContent();
+});
+app.MapPost("/v1/{tenant}/native/products/{product}/revocations/{version}/{rid}", async (HttpRequest request,
+    string tenant, string product, string version, string rid, FileRegistryStore store, CancellationToken token) =>
+{
+    if (options.AllowAnonymousPublish) return Results.Problem("Native revocation requires authenticated-only registry configuration.", statusCode: 403);
+    var denied = RegistryAccess.Authorize(request, tenant, "release.revoke", $"product:{product}", options); if (denied is not null) return denied;
+    try { await store.RevokeNativeInstallerAsync(tenant, product, version, rid, token); }
+    catch (KeyNotFoundException) { return Results.NotFound(); }
+    Audit(app, request, tenant, "native.revoke", $"product:{product}", version);
+    return Results.NoContent();
+});
 app.MapGet("/v1/{tenant}/products/{product}/catalog.json", async (HttpRequest request, string tenant, string product, FileRegistryStore store, CancellationToken token) =>
     ReadDenied(request, tenant, "catalog.read", $"product:{product}", options) ?? (await store.GetReleaseCatalogAsync(tenant, product, token) is { } catalog ? Results.Json(catalog) : Results.NotFound()));
 app.MapGet("/v1/{tenant}/modules/catalog.json", async (HttpRequest request, string tenant, FileRegistryStore store, CancellationToken token) =>

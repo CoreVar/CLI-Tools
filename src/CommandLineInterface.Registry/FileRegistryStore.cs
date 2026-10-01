@@ -6,7 +6,7 @@ using CoreVar.CommandLineInterface.Modules;
 
 namespace CoreVar.CommandLineInterface.Registry;
 
-public sealed class FileRegistryStore(RegistryOptions options)
+public sealed partial class FileRegistryStore(RegistryOptions options)
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 

@@ -80,6 +80,42 @@ await CliApp.RunAsync(cli => cli
     })
     .Command("publish", publish => publish
         .Description("Publishes immutable artifacts to a self-hosted CoreVar registry.")
+        .Command("native", command =>
+        {
+            var endpoint = command.Option<Uri>("--endpoint").IsRequired(); var tenant = command.Option<string>("--tenant").IsRequired();
+            var product = command.Option<string>("--product").IsRequired(); var version = command.Option<string>("--version").IsRequired();
+            var rid = command.Option<string>("--rid").IsRequired(); var file = command.Option<string>("--file").IsRequired();
+            var policyFile = command.Option<string>("--policy").IsRequired(); var signature = command.Option<string>("--signature").IsRequired();
+            var token = command.Option<string?>("--token").FromEnvironment("COREVAR_REGISTRY_TOKEN");
+            command.Description("Verify native Windows setup and publish immutable bytes with publisher proof; promotion is separate.")
+                .OnExecute(async context =>
+                {
+                    var policy = System.Text.Json.JsonSerializer.Deserialize(await File.ReadAllTextAsync(context.GetOption(policyFile), context.CancellationToken),
+                        CoreVar.CommandLineInterface.Distribution.NativeInstallerJsonContext.Default.NativeInstallerUpdatePolicy)
+                        ?? throw new InvalidDataException("Native publisher policy is empty.");
+                    var result = await new RegistryPublisher().PublishNativeInstallerAsync(context.GetOption(endpoint), context.GetOption(tenant),
+                        context.GetOption(product), context.GetOption(version), context.GetOption(rid), context.GetOption(file), policy,
+                        ArtifactSignature.Load(context.GetOption(signature)), context.GetOption(token), context.CancellationToken);
+                    await context.Console.WriteLine($"Published native setup {result.Uri} ({result.Sha256}); not promoted.");
+                });
+        })
+        .Command("native-promote", command =>
+        {
+            var endpoint = command.Option<Uri>("--endpoint").IsRequired(); var tenant = command.Option<string>("--tenant").IsRequired();
+            var product = command.Option<string>("--product").IsRequired(); var version = command.Option<string>("--version").IsRequired();
+            var rid = command.Option<string>("--rid").IsRequired(); var channel = command.Option<string>("--channel").IsRequired();
+            var token = command.Option<string?>("--token").FromEnvironment("COREVAR_REGISTRY_TOKEN");
+            command.OnExecute(async context => await new RegistryPublisher().PromoteNativeInstallerAsync(context.GetOption(endpoint),
+                context.GetOption(tenant), context.GetOption(product), context.GetOption(channel), context.GetOption(version), context.GetOption(rid), context.GetOption(token), context.CancellationToken));
+        })
+        .Command("native-revoke", command =>
+        {
+            var endpoint = command.Option<Uri>("--endpoint").IsRequired(); var tenant = command.Option<string>("--tenant").IsRequired();
+            var product = command.Option<string>("--product").IsRequired(); var version = command.Option<string>("--version").IsRequired();
+            var rid = command.Option<string>("--rid").IsRequired(); var token = command.Option<string?>("--token").FromEnvironment("COREVAR_REGISTRY_TOKEN");
+            command.OnExecute(async context => await new RegistryPublisher().RevokeNativeInstallerAsync(context.GetOption(endpoint),
+                context.GetOption(tenant), context.GetOption(product), context.GetOption(version), context.GetOption(rid), context.GetOption(token), context.CancellationToken));
+        })
         .Command("cli", command =>
         {
             var endpoint = command.Option<Uri>("--endpoint").IsRequired();
