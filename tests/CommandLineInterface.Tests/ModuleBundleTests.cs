@@ -34,7 +34,7 @@ public sealed class ModuleBundleTests : IDisposable
     }
 
     [Fact]
-    public async Task LocalPinnedBundleInstallsRequiredModule()
+    public async Task LocalPinnedBundleInstallsRequiredModuleInsideHostInstallLock()
     {
         Directory.CreateDirectory(_root);
         var release = await CreatePackageAsync("sample", "1.0.0");
@@ -53,8 +53,13 @@ public sealed class ModuleBundleTests : IDisposable
         await File.WriteAllTextAsync(bundlePath, JsonSerializer.Serialize(bundle, ModuleJsonContext.Default.ModuleBundle));
         var digest = await DigestAsync(bundlePath);
 
+        var distribution = Path.Combine(_root, "distribution");
+        Directory.CreateDirectory(distribution);
+        using var hostInstallLock = new FileStream(Path.Combine(distribution, ".operation.lock"),
+            FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
         var result = await new ModuleBundleInstaller().InstallAsync(bundlePath, digest,
-            new ModuleInstallContext { HostVersion = new(0, 1, 0), FrameworkVersion = new(10, 1, 0), Root = Path.Combine(_root, "distribution") });
+            new ModuleInstallContext { HostVersion = new(0, 1, 0), FrameworkVersion = new(10, 1, 0), Root = distribution });
 
         Assert.True(result.IsComplete);
         Assert.Equal(ModuleBundleItemStatus.Installed, Assert.Single(result.Items).Status);

@@ -109,7 +109,9 @@ public sealed class ModuleBundleInstaller(HttpClient? client = null)
             throw new InvalidDataException("A bundle cannot contain duplicate module IDs.");
         try
         {
-            locks.Add(InstallationFiles.AcquireLock(paths.Root));
+            // The host installer already holds the root operation lock while invoking setup.
+            // Serialize bundle commits separately so that post-install setup can run beneath it.
+            locks.Add(InstallationFiles.AcquireLock(Path.Combine(paths.Root, ".bundle-transaction")));
             foreach (var member in bundle.Modules.OrderBy(x => x.Id, StringComparer.OrdinalIgnoreCase))
                 locks.Add(InstallationFiles.AcquireLock(paths.Module(member.Id)));
             try
