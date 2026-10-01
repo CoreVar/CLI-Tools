@@ -24,6 +24,8 @@ public sealed class WindowsInstallerRecipe
     public string? LogoFile { get; set; }
     public string? IconFile { get; set; }
     public string? ThemeFile { get; set; }
+    /// <summary>Extension name or absolute DLL path, allowing pinned WiX versions with renamed bootstrapper assemblies.</summary>
+    public string BootstrapperExtension { get; init; } = "WixToolset.Bal.wixext";
     public string? LicenseUrl { get; init; }
     public string? SupportUrl { get; init; }
     public Uri? DownloadUrl { get; init; }
@@ -42,13 +44,20 @@ public sealed class WindowsInstallerRecipe
         if (value.LogoFile is not null) value.LogoFile = Path.GetFullPath(value.LogoFile, root);
         if (value.IconFile is not null) value.IconFile = Path.GetFullPath(value.IconFile, root);
         if (value.ThemeFile is not null) value.ThemeFile = Path.GetFullPath(value.ThemeFile, root);
+        if (value.Signing?.AzureSigningDlib is { } dlib) value.Signing.AzureSigningDlib = Path.GetFullPath(dlib, root);
+        if (value.Signing?.AzureSigningMetadata is { } metadata) value.Signing.AzureSigningMetadata = Path.GetFullPath(metadata, root);
         return value;
     }
 }
 
 public sealed class WindowsSigningOptions
 {
-    public required string CertificateThumbprint { get; init; }
+    public string? CertificateThumbprint { get; init; }
+    /// <summary>Official Azure Artifact Signing client DLL and credential-free metadata file.</summary>
+    public string? AzureSigningDlib { get; set; }
+    public string? AzureSigningMetadata { get; set; }
+    /// <summary>Reviewed signing profile subject, never taken from a downloaded release manifest.</summary>
+    public string? PublisherSubject { get; init; }
     public string Store { get; init; } = "My";
     public bool MachineStore { get; init; }
     public required Uri TimestampUrl { get; init; }
@@ -139,7 +148,7 @@ public static class WindowsInstaller
         if (recipe.Signing is not null) await SignAsync(msi, recipe.Signing, token);
         source = Path.Combine(output, "bundle.wxs");
         await File.WriteAllTextAsync(source, BundleSource(recipe, msi), token);
-        await RunAsync(wixExecutable, ["build", source, "-arch", recipe.Architecture, "-ext", "WixToolset.Bal.wixext", "-o", bundle], token);
+        await RunAsync(wixExecutable, ["build", source, "-arch", recipe.Architecture, "-ext", recipe.BootstrapperExtension, "-o", bundle], token);
         if (recipe.Signing is not null)
         {
             var engine = Path.Combine(output, "burn-engine.exe");
@@ -155,14 +164,49 @@ public static class WindowsInstaller
     public static async ValueTask SignAsync(string path, WindowsSigningOptions options, CancellationToken token = default)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Authenticode signing requires Windows.");
-        if (string.IsNullOrWhiteSpace(options.CertificateThumbprint) || options.CertificateThumbprint.Any(c => !Uri.IsHexDigit(c)))
-            throw new ArgumentException("Supply the signing certificate's hexadecimal thumbprint.");
-        if (options.TimestampUrl.Scheme != "https" && options.TimestampUrl.Scheme != "http") throw new ArgumentException("Timestamp URL must use HTTP(S).");
-        var args = new List<string> { "sign", "/sha1", options.CertificateThumbprint, "/s", options.Store ?? "My", "/fd", "SHA256", "/tr", options.TimestampUrl.AbsoluteUri, "/td", "SHA256" };
-        if (options.MachineStore) args.Add("/sm");
-        args.Add(Path.GetFullPath(path));
+        var args = SigningArguments(path, options);
         await RunAsync(options.SignTool ?? "signtool", args, token);
         await RunAsync(options.SignTool ?? "signtool", ["verify", "/pa", "/all", "/tw", Path.GetFullPath(path)], token);
+        if (options.PublisherSubject is not null)
+        {
+            // Extract the Authenticode signer from a PE/MSI, not a standalone certificate file.
+#pragma warning disable SYSLIB0057
+            using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromSignedFile(path);
+#pragma warning restore SYSLIB0057
+            if (!string.Equals(certificate.Subject, options.PublisherSubject, StringComparison.Ordinal))
+                throw new InvalidDataException("Artifact signer does not match the reviewed publisher subject.");
+        }
+    }
+
+    internal static IReadOnlyList<string> SigningArguments(string path, WindowsSigningOptions options)
+    {
+        var local = !string.IsNullOrWhiteSpace(options.CertificateThumbprint);
+        var azure = !string.IsNullOrWhiteSpace(options.AzureSigningMetadata);
+        if (local == azure) throw new ArgumentException("Select exactly one certificate-store or Azure Artifact Signing provider.");
+        if (options.TimestampUrl.Scheme is not ("https" or "http")) throw new ArgumentException("Timestamp URL must use HTTP(S).");
+        var args = new List<string> { "sign", "/fd", "SHA256", "/tr", options.TimestampUrl.AbsoluteUri, "/td", "SHA256" };
+        if (azure)
+        {
+            if (options.MachineStore || string.IsNullOrWhiteSpace(options.PublisherSubject) ||
+                string.IsNullOrWhiteSpace(options.AzureSigningDlib) || !File.Exists(options.AzureSigningDlib) || !File.Exists(options.AzureSigningMetadata))
+                throw new ArgumentException("Azure signing requires official client DLL, metadata and reviewed publisher subject; certificate store options do not apply.");
+            using var metadata = JsonDocument.Parse(File.ReadAllText(options.AzureSigningMetadata!));
+            if (!metadata.RootElement.TryGetProperty("Endpoint", out var endpoint) ||
+                !Uri.TryCreate(endpoint.GetString(), UriKind.Absolute, out var uri) || uri.Scheme != "https" || uri.UserInfo.Length != 0 ||
+                !metadata.RootElement.TryGetProperty("CodeSigningAccountName", out var account) || string.IsNullOrWhiteSpace(account.GetString()) ||
+                !metadata.RootElement.TryGetProperty("CertificateProfileName", out var profile) || string.IsNullOrWhiteSpace(profile.GetString()))
+                throw new ArgumentException("Azure metadata requires HTTPS endpoint, signing account and certificate profile.");
+            args.AddRange(["/dlib", Path.GetFullPath(options.AzureSigningDlib), "/dmdf", Path.GetFullPath(options.AzureSigningMetadata!)]);
+        }
+        else
+        {
+            if (options.AzureSigningDlib is not null || options.CertificateThumbprint!.Any(c => !Uri.IsHexDigit(c)))
+                throw new ArgumentException("Supply a hexadecimal certificate-store thumbprint without Azure client settings.");
+            args.AddRange(["/sha1", options.CertificateThumbprint!, "/s", options.Store]);
+            if (options.MachineStore) args.Add("/sm");
+        }
+        args.Add(Path.GetFullPath(path));
+        return args;
     }
 
     internal static async ValueTask RunAsync(string executable, IEnumerable<string> arguments, CancellationToken token)

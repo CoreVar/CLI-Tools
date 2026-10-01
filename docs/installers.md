@@ -117,7 +117,26 @@ For certificate signing, add:
 }
 ```
 
-Install the publisher's code-signing certificate/provider in the build environment. The workflow signs and verifies the MSI, signs the detached Burn engine, reattaches it, and signs/verifies the final bundle. No key export or password argument is needed. This initial provider supports certificates exposed through the Windows certificate store; cloud-specific signing adapters are not required for development and are not bundled.
+Install the publisher's code-signing certificate/provider in the build environment. The workflow signs and verifies the MSI, signs the detached Burn engine, reattaches it, and signs/verifies the final bundle. No key export or password argument is needed.
+
+Azure Artifact Signing is an alternative to the certificate store. Select exactly one provider. Install a pinned official signing client DLL separately and supply credential-free metadata containing `Endpoint`, `CodeSigningAccountName` and `CertificateProfileName`. The endpoint must use HTTPS. Configure the build identity using your CI's supported federation mechanism; do not put tokens or private keys in the recipe.
+
+```json
+{
+  "requireSigning": true,
+  "signing": {
+    "azureSigningDlib": "tools/official-client/Azure.CodeSigning.Dlib.dll",
+    "azureSigningMetadata": "signing-metadata.json",
+    "publisherSubject": "EXACT_REVIEWED_CERTIFICATE_SUBJECT",
+    "timestampUrl": "http://timestamp.acs.microsoft.com/",
+    "signTool": "signtool"
+  }
+}
+```
+
+Supply the actual verified publisher subject from the publisher's signing profile. Each signed artifact must pass SignTool chain/timestamp verification and match that subject exactly. Real signing requires the publisher's verified profile and authorized build identity; configuration tests do not establish those prerequisites. The official DLL and metadata are external build inputs, not shipped runtime dependencies. Sign the application's own executables before packaging; preserve third-party signatures.
+
+For WiX versions whose bootstrapper DLL has a different assembly name, set `bootstrapperExtension` to its pinned absolute DLL path. WiX 6.0.2's `WixToolset.Bal.wixext` package contains `wixext6/WixToolset.BootstrapperApplications.wixext.dll`. An explicit path also avoids cache lookup changes when the build runs from a different directory. Qualify Burn initialization/layout as well as compilation on a disposable Windows runner.
 
 The build commands follow [WiX bundle signing](https://docs.firegiant.com/wix/tools/signing/) and [Microsoft SignTool](https://learn.microsoft.com/en-us/windows/win32/seccrypto/signtool). A detached RSA archive signature is a different mechanism from Windows Authenticode publisher identity.
 
