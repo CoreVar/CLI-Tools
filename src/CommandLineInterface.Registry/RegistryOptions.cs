@@ -22,8 +22,33 @@ public sealed class RegistryOptions
     private static Dictionary<string, Dictionary<string, string>> LoadSigningKeys()
     {
         var path = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_SIGNING_KEYS_FILE");
-        return string.IsNullOrWhiteSpace(path) ? [] : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(File.ReadAllText(path))
-            ?? throw new InvalidDataException("Signing keys file is empty.");
+        var inline = Environment.GetEnvironmentVariable("COREVAR_REGISTRY_SIGNING_KEYS_JSON");
+        if (!string.IsNullOrWhiteSpace(path) && !string.IsNullOrWhiteSpace(inline))
+            throw new InvalidDataException("Configure one signing-key enrollment source, not both.");
+        var json = string.IsNullOrWhiteSpace(path) ? inline : File.ReadAllText(path);
+        return string.IsNullOrWhiteSpace(json) ? [] : ParseSigningKeys(json);
+    }
+
+    internal static Dictionary<string, Dictionary<string, string>> ParseSigningKeys(string json)
+    {
+        if (json.Length > 262144) throw new InvalidDataException("Signing-key enrollment is too large.");
+        var keys = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(json)
+            ?? throw new InvalidDataException("Signing-key enrollment is empty.");
+        foreach (var (scope, publishers) in keys)
+        {
+            if (string.IsNullOrWhiteSpace(scope) || scope.Split('/').Length != 2 || publishers is null)
+                throw new InvalidDataException("Signing-key enrollment must be scoped to tenant/product.");
+            foreach (var (id, pem) in publishers)
+            {
+                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(pem) ||
+                    !pem.StartsWith("-----BEGIN PUBLIC KEY-----", StringComparison.Ordinal))
+                    throw new InvalidDataException("Only named public proof keys may be enrolled.");
+                using var rsa = System.Security.Cryptography.RSA.Create();
+                rsa.ImportFromPem(pem);
+                if (rsa.KeySize < 2048) throw new InvalidDataException("Publisher proof keys must be at least RSA 2048.");
+            }
+        }
+        return keys;
     }
 
     internal static long ParseMaxUploadBytes(string? value) =>

@@ -71,7 +71,10 @@ read policy. No public-storage setting is needed; the API serves only known nati
 product artifacts, and revoked feeds/artifacts are hidden.
 
 Enroll a publisher's public proof key through the existing
-`COREVAR_REGISTRY_SIGNING_KEYS_FILE` configuration. Its shape is
+`COREVAR_REGISTRY_SIGNING_KEYS_FILE` configuration, or the mutually exclusive
+`COREVAR_REGISTRY_SIGNING_KEYS_JSON` environment value for managed deployments.
+Both accept public-only RSA keys of at least 2048 bits. Preserve all existing
+product entries when updating enrollment. Its shape is
 `{"tenant/product":{"key-id":"PUBLIC_KEY_PEM"}}`. The service never trusts a key
 supplied by an upload. Store the private proof key in the publisher's authorized
 CI secret store; this is separate from the cloud code-signing identity.
