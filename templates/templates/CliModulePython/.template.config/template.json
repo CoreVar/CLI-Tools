@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "CoreVar",
+  "classifications": ["CLI", "Module", "Python"],
+  "identity": "CoreVar.CommandLineInterface.Module.Python",
+  "name": "CoreVar external CLI module (Python)",
+  "shortName": "corevar-module-python",
+  "sourceName": "CliModule",
+  "preferNameDirectory": true
+}

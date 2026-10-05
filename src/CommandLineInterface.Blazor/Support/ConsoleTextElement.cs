@@ -14,6 +14,8 @@ public sealed class ConsoleTextElement
 
     public Color Color { get; set; }
 
+    public bool IsBold { get; set; }
+
     public string Text { get; set; } = string.Empty;
 
 }

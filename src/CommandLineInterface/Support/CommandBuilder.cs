@@ -3,6 +3,8 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 using CoreVar.CommandLineInterface.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using CoreVar.CommandLineInterface.Execution;
+using CoreVar.CommandLineInterface.Validation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +43,16 @@ public class CommandBuilder(string name, CommandLineOptions commandLineOptions) 
     bool IExecutableBuilderInternals.DisableHelp { get; set; }
     
     List<CommandTreeElementUsage>? IExecutableBuilderInternals.Usages { get; set; }
+
+    List<CommandMiddleware> IExecutableBuilderInternals.Middleware { get; } = [];
+
+    List<Func<CommandExecutionContext, ValueTask<ValidationResult>>> IExecutableBuilderInternals.Validators { get; } = [];
+
+    HashSet<string> IExecutableBuilderInternals.Aliases { get; } = new(commandLineOptions.CommandComparer);
+
+    bool IExecutableBuilderInternals.IsHidden { get; set; }
+
+    string? IExecutableBuilderInternals.DeprecationMessage { get; set; }
 
     void IBuilderInternals.AddHostBuilder(Action<IHostApplicationBuilder> handler)
         => _hostBuilders.Add(handler);

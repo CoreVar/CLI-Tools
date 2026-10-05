@@ -1,0 +1,16 @@
+.terminal-file-request {
+    border: 1px solid #68778d;
+    border-radius: .4rem;
+    padding: 1rem;
+    margin: .75rem 0;
+    display: grid;
+    gap: .65rem;
+    max-width: 38rem;
+    color: inherit;
+    background: #17212d;
+}
+.terminal-file-request p { margin: 0; }
+.terminal-file-path { overflow-wrap: anywhere; opacity: .85; }
+.terminal-file-request ::deep input { max-width: 100%; color: inherit; }
+.terminal-file-request button { padding: .4rem .75rem; justify-self: start; }
+.terminal-file-request [role="alert"] { color: #ffc4be; }

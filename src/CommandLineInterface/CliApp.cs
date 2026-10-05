@@ -2,6 +2,8 @@
 using CoreVar.CommandLineInterface.Support;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using CoreVar.CommandLineInterface.Generation;
+using CoreVar.CommandLineInterface.Runtime;
 
 namespace CoreVar.CommandLineInterface;
 
@@ -43,6 +45,12 @@ public class CliApp(IHost host) : IAsyncDisposable
     /// The <see cref="IHost"/> object containing the services to run the command line application.
     /// </summary>
     public IHost Host => host;
+
+    /// <summary>Generates Markdown documentation for every visible command.</summary>
+    public string GenerateMarkdown() => CommandDocumentationGenerator.GenerateMarkdown(host.Services.GetRequiredService<CommandTree>());
+
+    /// <summary>Generates a completion script for bash, zsh, fish, or PowerShell.</summary>
+    public string GenerateCompletion(string shell) => ShellCompletionGenerator.Generate(host.Services.GetRequiredService<CommandTree>(), shell);
 
     /// <summary>
     /// Creates a builder and runs the command line application asynchronously.

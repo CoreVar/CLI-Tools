@@ -12,4 +12,10 @@ public class CommandNameAttribute(string name) : Attribute
 
     public string Name => name;
 
+    public string[] Aliases { get; set; } = [];
+
+    public bool Hidden { get; set; }
+
+    public string? Deprecated { get; set; }
+
 }

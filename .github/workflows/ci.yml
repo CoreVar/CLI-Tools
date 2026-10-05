@@ -1,0 +1,55 @@
+name: Contributor CI
+on:
+  push:
+    branches-ignore: ['releases/**', 'prereleases/**']
+  pull_request:
+    branches-ignore: ['releases/**', 'prereleases/**']
+permissions:
+  contents: read
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+  dev-pack:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Pack validated DEV packages
+        run: |
+          version="10.1.0-dev.${{ github.run_number }}.${{ github.run_attempt }}"
+          for project in \
+            src/CommandLineInterface.Abstractions/CommandLineInterface.Abstractions.csproj \
+            src/CommandLineInterface/CommandLineInterface.csproj \
+            src/CommandLineInterface.Blazor/CommandLineInterface.Blazor.csproj \
+            src/CommandLineInterface.Modules/CommandLineInterface.Modules.csproj \
+            src/CommandLineInterface.Distribution/CommandLineInterface.Distribution.csproj \
+            src/CommandLineInterface.Publishing/CommandLineInterface.Publishing.csproj \
+            src/CoreVar.CliTools/CoreVar.CliTools.csproj \
+            templates/ProjectTemplates.csproj; do
+            dotnet pack "$project" -c Release -o nupkgs /p:PackageVersion="$version"
+          done
+      - name: Verify adopted license notice in DEV packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          expected = Path('LICENSE').read_bytes()
+          packages = list(Path('nupkgs').glob('*.nupkg'))
+          assert packages, 'No DEV packages produced'
+          for package in packages:
+              with ZipFile(package) as archive:
+                  assert archive.read('LICENSE') == expected, f'{package}: adopted notice missing or changed'
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dev-packages
+          path: nupkgs/*.nupkg
+          if-no-files-found: error

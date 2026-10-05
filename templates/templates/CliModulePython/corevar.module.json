@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0",
+  "id": "CliModule",
+  "version": "1.0.0",
+  "description": "An isolated Python CoreVar CLI module",
+  "runtime": { "kind": "python", "provisioning": "system", "version": ">=3.11", "requirementsFile": "requirements.txt" },
+  "entrypoints": { "any": { "path": "module.py" } },
+  "commands": [{ "name": "hello", "description": "Greets someone from Python", "arguments": [{ "name": "name", "required": false }] }]
+}

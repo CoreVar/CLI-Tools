@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "CliModule",
+  "version": "1.0.0",
+  "description": "A .NET CoreVar CLI module",
+  "runtime": { "kind": "native", "provisioning": "bundled" },
+  "entrypoints": {
+    "win-x64": { "path": "cli-module.exe" },
+    "linux-x64": { "path": "cli-module" },
+    "osx-arm64": { "path": "cli-module" }
+  },
+  "commands": [{ "name": "hello", "description": "Greets someone from the module", "arguments": [{ "name": "name", "required": false }] }]
+}

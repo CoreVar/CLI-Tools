@@ -3,6 +3,7 @@ using CoreVar.CommandLineInterface.Builders.Internals;
 using CoreVar.CommandLineInterface.Runtime;
 using CoreVar.CommandLineInterface.Utilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreVar.CommandLineInterface;
 
@@ -25,12 +26,35 @@ public static partial class BuilderExtensions
         {
             if (!option.Option.GetValueHandler(context, option, out var value))
             {
-                // TODO: Report error
-                return default!;
+                throw new FormatException("Invalid option value.");
+            }
+            foreach (var validator in optionBuilderInternals.Validators)
+            {
+                var message = validator(value);
+                if (message is not null)
+                    throw new ArgumentException(optionBuilderInternals.Secret ? "Invalid secret option value." : message, optionBuilderInternals.Name);
             }
             return (T)value;
         }
-        return default!;
+
+        string? fallback = null;
+        if (optionBuilderInternals.EnvironmentVariable is not null)
+            fallback = Environment.GetEnvironmentVariable(optionBuilderInternals.EnvironmentVariable);
+        if (fallback is null && optionBuilderInternals.ConfigurationKey is not null)
+            fallback = context.Services.GetService<IConfiguration>()?[optionBuilderInternals.ConfigurationKey];
+
+        object? resolved = optionBuilderInternals.DefaultValue;
+        if (fallback is not null && !ValueConverter.TryConvert(fallback, typeof(T), out resolved))
+            throw new FormatException($"Invalid value for option '{optionBuilderInternals.Name}'.");
+
+        foreach (var validator in optionBuilderInternals.Validators)
+        {
+            var message = validator(resolved);
+            if (message is not null)
+                throw new ArgumentException(optionBuilderInternals.Secret ? "Invalid secret option value." : message, optionBuilderInternals.Name);
+        }
+
+        return resolved is null ? default! : (T)resolved;
     }
 
     /// <summary>
@@ -167,12 +191,26 @@ public static partial class BuilderExtensions
         {
             if (!argument.Argument.GetValueHandler(context, argument, out var value))
             {
-                // TODO: Report error
-                return default!;
+                throw new FormatException("Invalid argument value.");
+            }
+            foreach (var validator in argumentBuilderInternals.Validators)
+            {
+                var message = validator(value);
+                if (message is not null)
+                    throw new ArgumentException(argumentBuilderInternals.Secret ? "Invalid secret argument value." : message, argumentBuilderInternals.Name);
             }
             return (T)value;
         }
-        return default!;
+
+        var resolved = argumentBuilderInternals.DefaultValue;
+        foreach (var validator in argumentBuilderInternals.Validators)
+        {
+            var message = validator(resolved);
+            if (message is not null)
+                throw new ArgumentException(argumentBuilderInternals.Secret ? "Invalid secret argument value." : message, argumentBuilderInternals.Name);
+        }
+
+        return resolved is null ? default! : (T)resolved;
     }
 
     /// <summary>
