@@ -36,6 +36,18 @@ jobs:
             templates/ProjectTemplates.csproj; do
             dotnet pack "$project" -c Release -o nupkgs /p:PackageVersion="$version"
           done
+      - name: Verify adopted license notice in DEV packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          expected = Path('LICENSE').read_bytes()
+          packages = list(Path('nupkgs').glob('*.nupkg'))
+          assert packages, 'No DEV packages produced'
+          for package in packages:
+              with ZipFile(package) as archive:
+                  assert archive.read('LICENSE') == expected, f'{package}: adopted notice missing or changed'
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: dev-packages
